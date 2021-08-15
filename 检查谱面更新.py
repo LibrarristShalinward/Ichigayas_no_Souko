@@ -25,7 +25,7 @@ def chart_download(ID, diff = "expert"):
 
 #检查缺失谱面
 download_list = []
-with open(source_path, "r") as f:
+with open(source_path, "r", encoding = "UTF-8") as f:
     reader = csv.reader(f)
     for line in reader:
         diffs = ["easy", "naomal", "hard", "expert"]
@@ -35,8 +35,18 @@ with open(source_path, "r") as f:
         name = line[1]
         for diff in diffs:
             if not chart_exists(ID, diff):
-                print("谱面缺失：\t曲目：%s\t难度：%s" %(name, diff))
+                print("谱面缺失：\t难度：%s\t曲目：%s" %(diff.ljust(8), name))
                 missing = True
-                download_list.append((ID, diff))
+                download_list.append((ID, diff, name))
         if not missing:
             print("%s谱面无缺失" %(name))
+
+
+
+#下载缺失谱面
+for ID, diff, name in download_list:
+    try:
+        chart_download(ID, diff)
+        print("谱面下载成功：" + name + "-" + diff)
+    except:
+        print("谱面下载失败：" + name + "-" + diff)
