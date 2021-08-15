@@ -13,7 +13,8 @@ result = clinet.json()
 #整理歌曲列表
 write_list = []
 for i, j in zip(result.keys(), result.values()):
-    write_list.append([i, j['musicTitle'][0]])
+    if len(i) < 4:
+        write_list.append([i, j['musicTitle'][0]])
 
 
 
