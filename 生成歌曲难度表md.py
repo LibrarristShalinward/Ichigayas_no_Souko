@@ -3,13 +3,12 @@ import csv
 source_file = "歌曲信息\歌曲难度.csv"
 target_path = "歌曲信息/歌曲难度表.md"
 md_text = [
-    "<center>\n", 
-    "\n", 
     "# 歌曲难度表\n", 
     "<br>\n", 
     "\n"
     "----\n", 
     "<br>\n", 
+    "<center>\n", 
     "\n", 
     "|ID|曲名|简写|Es|Nr|Hd|Ex|Sp|\n", 
     "|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|\n"
