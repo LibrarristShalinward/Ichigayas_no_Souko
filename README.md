@@ -1,2 +1,13 @@
-# Ichigayas_no_Souko
-This is a set of packages based on Python that focusing on analyzing the charts of "BanGDream-Girl's Band Party". 
+# 市ヶ谷家の倉庫
+基于bestdori数据的BanDream谱面分析器！目前包含如下功能：
+- 谱面下载（.json格式）（其实尝试用txt也是可以打开的）（前提是你看得懂）
+
+
+
+## 更新日志
+
+<center>
+
+|日期|内容|
+|:--:|----|
+|21/8/5||
