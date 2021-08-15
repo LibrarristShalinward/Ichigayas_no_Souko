@@ -23,7 +23,7 @@ def chart_download(ID, diff = "expert"):
         f.write(json.dumps(get_chart(ID, diff)))
 
 def chart_remove(ID, diff = "expert"):
-    if chart_exists(): remove(chart_path(ID, diff))
+    if chart_exists(ID, diff): remove(chart_path(ID, diff))
 
 #检查缺失谱面
 download_list = []
@@ -50,6 +50,8 @@ for ID, diff, name in download_list:
     try:
         chart_download(ID, diff)
         print("谱面下载成功：" + str(ID) + "." + name + "-" + diff)
-    except:
+    except Exception:
         chart_remove(ID, diff)
         print("谱面下载失败：" + str(ID) + "." + name + "-" + diff)
+
+print("谱面检查完毕!")

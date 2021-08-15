@@ -3,7 +3,8 @@ import csv
 source_file = "歌曲信息\歌曲难度.csv"
 target_path = "歌曲信息/歌曲难度表.md"
 md_text = [
-    "<center>\n"
+    "<center>\n", 
+    "\n", 
     "# 歌曲难度表\n", 
     "<br>\n", 
     "\n"
