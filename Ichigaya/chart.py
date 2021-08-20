@@ -1,10 +1,9 @@
-import requests
-from os.path import exists
-from os import remove, mkdir
 import codecs
 import json
+from os import mkdir, remove
+from os.path import exists, getsize
 
-
+import requests
 
 init_chart_path = lambda ID, diff = "expert": diff + "/" + str(ID).zfill(3) + ".json"
 diffs = ["easy", "normal", "hard", "expert", "special"]
@@ -65,6 +64,11 @@ class chart:
     
     def get(self): 
         return self.__ID, self.__diff, self.__name
+    
+    def size(self):
+        if self.exists():
+            return getsize(self.file)
+        else: return 0
     
     def set(self, ID = None, diff = "expert", name = ""):
         self.set_ID(ID)

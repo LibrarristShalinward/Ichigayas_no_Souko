@@ -1,9 +1,5 @@
-# from os.path import exists
-# from os import remove
-# import requests
-# import codecs
-# import json
 import csv
+
 from Ichigaya import chart
 
 source_path = "歌曲信息/歌曲难度.csv"
