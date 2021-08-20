@@ -1,6 +1,6 @@
 import requests
 from os.path import exists
-from os import error, remove
+from os import remove, mkdir
 import codecs
 import json
 
@@ -16,13 +16,15 @@ class chart:
         self.__ID = ID
         self.__diff = diff
         self.__name = ""
-        self.path = init_chart_path(ID, diff)
-        self.exists = lambda self: exists(self.path)
+        self.file = init_chart_path(ID, diff)
+        self.path = diff
         self.url = "https://bestdori.com/api/charts/" + str(ID) + "/" + diff + ".json"
     
+    def exists(self):return exists(self.file)
+
     def load(self): 
         if self.exists():
-            with codecs.open(self.path, "r") as f:
+            with codecs.open(self.file, "r") as f:
                 self.json = json.load(f)
         else:
             client = requests.get(self.url)
@@ -35,17 +37,19 @@ class chart:
     def download(self):
         self.remove()
         self.load()
-        with codecs.open(self.path, "w") as f:
+        if not exists(self.path): mkdir(self.path)
+        with codecs.open(self.file, "w") as f:
             f.write(json.dumps(self.json))
     
     def remove(self):
-        if self.exists(): remove(self.path)
+        if self.exists(): remove(self.file)
     
     def to_path(self, path):
-        self.path = path + "/" + init_chart_path(self.ID, self.diff)
+        self.file = path + "/" + init_chart_path(self.__ID, self.__diff)
+        self.path = path + "/" + self.__diff
     
     def set_path(self, path):
-        self.path = path
+        self.file = path
     
     def set_ID(self, ID = None):
         self.__ID = ID
