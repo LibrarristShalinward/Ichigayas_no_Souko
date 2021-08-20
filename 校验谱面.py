@@ -1,25 +1,8 @@
-from os.path import exists, getsize
-from os import remove
 import csv
-import json
-import codecs
 
-
+from Ichigaya import chart
 
 source_path = "歌曲信息/歌曲难度.csv"
-
-#基本函数
-chart_path = lambda ID, diff = "expert": "谱面/" + diff + "/" + str(ID).zfill(3) + ".json"
-
-chart_exists = lambda ID, diff = "expert": exists(chart_path(ID, diff))
-
-def chart_remove(ID, diff = "expert"):
-    if chart_exists(ID, diff): remove(chart_path(ID, diff))
-
-def chart_load(ID, diff = "expert"):
-    if not chart_exists(ID, diff): return None
-    with codecs.open(chart_path(ID, diff), "r", encoding = "UTF-8") as f:
-        return json.load(f)
 
 with open(source_path, "r", encoding = "UTF-8") as f:
     reader = csv.reader(f)
@@ -29,11 +12,15 @@ with open(source_path, "r", encoding = "UTF-8") as f:
         ID = int(line[0])
         name = line[1]
         for diff in diffs:
+            checking_chart = chart.chart(ID, diff)
+            checking_chart.to_path("谱面")
             status = True
-            if chart_exists(ID, diff):
-                size = getsize(chart_path(ID, diff))
-                if size < 2048: 
+            if checking_chart.exists():
+                # size = getsize(chart_path(ID, diff))
+                if checking_chart.size() < 2048: 
+                    size = checking_chart.size()
                     print("谱面异常：\t大小：%i\t难度：%s\t曲目：%s" %(size, diff.ljust(8), name))
-                    remove(chart_path(ID, diff))
+                    # remove(chart_path(ID, diff))
+                    checking_chart.remove()
 
 print("谱面校验完毕！")
