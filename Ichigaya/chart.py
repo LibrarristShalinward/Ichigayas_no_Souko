@@ -5,6 +5,8 @@ from os.path import exists, getsize
 
 import requests
 
+import key
+
 init_chart_path = lambda ID, diff = "expert": diff + "/" + str(ID).zfill(3) + ".json"
 diffs = ["easy", "normal", "hard", "expert", "special"]
 
@@ -21,7 +23,7 @@ class chart:
     
     def exists(self):return exists(self.file)
 
-    def load(self): 
+    def load(self, process = True): 
         if self.exists():
             with codecs.open(self.file, "r") as f:
                 self.json = json.load(f)
@@ -31,11 +33,13 @@ class chart:
             if client.status_code == 200:
                 self.json = client.json()
             else: self.json = None
+        if process and self.json != None:
+            self.__proccess()
         return self.json
     
-    def download(self):
+    def download(self, proccess = False):
         self.remove()
-        self.load()
+        self.load(proccess)
         if not exists(self.path): mkdir(self.path)
         with codecs.open(self.file, "w") as f:
             f.write(json.dumps(self.json))
@@ -74,3 +78,32 @@ class chart:
         self.set_ID(ID)
         self.set_diff(diff)
         self.set_name(name)
+    
+
+
+    def __proccess(self):
+        self.keys = {
+            "Single": [], 
+            "Hold": [], 
+            "Flick": [], 
+            "Hold&Flick": [], 
+            "Left": [], 
+            "Right": []}
+        # for obj in json:
+        #     if obj["type"] == "BPM":
+        #         time_stamps.append(i)
+        #     elif obj["type"] == "Single":
+        #         if "flick" in obj.keys():
+        #             chart_keys["Flick"].append(i)
+        #         else:
+        #             chart_keys["Single"].append(i)
+        #     elif obj["type"] == "Directional":
+        #         if obj["direction"] == "Left":
+        #             chart_keys["Left"].append(i)
+        #         else:
+        #             chart_keys["Right"].append(i)
+        #     elif obj["type"] != "System":
+        #         if "flick" in i["connections"][-1].keys():
+        #             chart_keys["Hold&Flick"].append(i)
+        #         else:
+        #             chart_keys["Hold"].append(i)
