@@ -5,7 +5,7 @@ from os.path import exists, getsize
 
 import requests
 
-import key
+from . import key
 
 init_chart_path = lambda ID, diff = "expert": diff + "/" + str(ID).zfill(3) + ".json"
 diffs = ["easy", "normal", "hard", "expert", "special"]
