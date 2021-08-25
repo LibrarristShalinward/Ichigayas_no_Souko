@@ -1,5 +1,6 @@
 import codecs
 import json
+import warnings as w
 from os import mkdir, remove
 from os.path import exists, getsize
 
@@ -26,8 +27,10 @@ class chart:
         self.len = 0
         self.stamp = {
             "beat": [], 
-            "bpm": []
+            "bpm": [], 
+            "time": []
         }
+        self.const_speed = None
     
     def exists(self):return exists(self.file)
 
@@ -110,14 +113,45 @@ class chart:
     
     def __proccess_time(self):
         end_beat = self.get_len()
+        for idx in self.stamp.keys():
+            self.stamp[idx] = []
         for obj in self.json:
             if obj["type"] == "BPM":
                 self.stamp["beat"].append(obj["beat"])
                 self.stamp["bpm"].append(obj["bpm"])
         self.stamp["beat"].pop(0)
+        self.const_speed = len(self.stamp["beat"]) == 0
         self.stamp["beat"].append(end_beat)
+        self.stamp["time"].append(60. / self.stamp["bpm"][0] * self.stamp["beat"][0])
+        if not self.const_speed:
+            for i in range(1, len(self.stamp["beat"])):
+                self.stamp["time"].append(
+                    self.stamp["time"][-1] + 60. / self.stamp["bpm"][i] * (
+                        self.stamp["beat"][i] - self.stamp["beat"][i-1]))
+        self.b_s_trans = lambda point, is_beat = True: self.__beat2sec(point) if is_beat else self.__sec2beat(point)
     
     def get_len(self):
         if self.len == 0:
             if self.json == None: self.load()
             return self.json[-1]["beat"]
+    
+    def __sec2beat(self, s):
+        assert s >= 0, "请使用正秒数！"
+        beat, bpm, time = self.stamp["beat"], self.stamp["bpm"], self.stamp["time"]
+        if s > time[-1]: 
+            w.warn("超出乐曲长度！")
+            return beat[-1] + (s - time[-1]) / 60. * bpm[-1]
+        for tar in zip(beat, bpm, time):
+            if tar[2] > s:
+                return tar[0] - (tar[2] - s) /60. * tar[1]
+    
+    def __beat2sec(self, b):
+        assert b >= 0, "请使用正拍数！"
+        beat, bpm, time = self.stamp["beat"], self.stamp["bpm"], self.stamp["time"]
+        if b > beat[-1]: 
+            w.warn("超出乐曲长度！")
+            return time[-1] + (b - beat[-1]) * 60. / bpm[-1]
+        for tar in zip(beat, bpm, time):
+            if tar[0] > b:
+                return tar[2] - (tar[0] - b) *60. / tar[1]
+        
