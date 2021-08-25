@@ -20,6 +20,14 @@ class chart:
         self.file = init_chart_path(ID, diff)
         self.path = diff
         self.url = "https://bestdori.com/api/charts/" + str(ID) + "/" + diff + ".json"
+        self.json = None
+        
+        self.keys = {}
+        self.len = 0
+        self.stamp = {
+            "beat": [], 
+            "bpm": []
+        }
     
     def exists(self):return exists(self.file)
 
@@ -35,6 +43,7 @@ class chart:
             else: self.json = None
         if process and self.json != None:
             self.__proccess_keys()
+            self.__proccess_time()
         return self.json
     
     def download(self, proccess = False):
@@ -82,6 +91,7 @@ class chart:
 
 
     def __proccess_keys(self):
+        if self.json == None: self.load()
         self.keys = {
             "Single": [], 
             "Hold": [], 
@@ -97,3 +107,17 @@ class chart:
                 self.keys["Direct"].append(key.Direct(obj))
             if obj["type"] in ["Long", "Slide"]:
                 self.keys["Hold"].append(key.Hold(obj))
+    
+    def __proccess_time(self):
+        end_beat = self.get_len()
+        for obj in self.json:
+            if obj["type"] == "BPM":
+                self.stamp["beat"].append(obj["beat"])
+                self.stamp["bpm"].append(obj["bpm"])
+        self.stamp["beat"].pop(0)
+        self.stamp["beat"].append(end_beat)
+    
+    def get_len(self):
+        if self.len == 0:
+            if self.json == None: self.load()
+            return self.json[-1]["beat"]

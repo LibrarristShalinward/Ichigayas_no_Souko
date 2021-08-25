@@ -1,1 +1,2 @@
-/Ichigaya/__pycache__/*
+*.pyc
+*.ipynb
