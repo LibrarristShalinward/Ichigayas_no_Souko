@@ -34,7 +34,7 @@ class chart:
                 self.json = client.json()
             else: self.json = None
         if process and self.json != None:
-            self.__proccess()
+            self.__proccess_keys()
         return self.json
     
     def download(self, proccess = False):
@@ -81,29 +81,19 @@ class chart:
     
 
 
-    def __proccess(self):
+    def __proccess_keys(self):
         self.keys = {
             "Single": [], 
             "Hold": [], 
             "Flick": [], 
-            "Hold&Flick": [], 
-            "Left": [], 
-            "Right": []}
-        # for obj in json:
-        #     if obj["type"] == "BPM":
-        #         time_stamps.append(i)
-        #     elif obj["type"] == "Single":
-        #         if "flick" in obj.keys():
-        #             chart_keys["Flick"].append(i)
-        #         else:
-        #             chart_keys["Single"].append(i)
-        #     elif obj["type"] == "Directional":
-        #         if obj["direction"] == "Left":
-        #             chart_keys["Left"].append(i)
-        #         else:
-        #             chart_keys["Right"].append(i)
-        #     elif obj["type"] != "System":
-        #         if "flick" in i["connections"][-1].keys():
-        #             chart_keys["Hold&Flick"].append(i)
-        #         else:
-        #             chart_keys["Hold"].append(i)
+            "Direct": []}
+        for obj in self.json:
+            if obj["type"] == "Single":
+                if "flick" in obj.keys() and obj["flick"]:
+                    self.keys["Flick"].append(key.Flick(obj))
+                else:
+                    self.keys["Single"].append(key.Single(obj))
+            if obj["type"] == "Directional":
+                self.keys["Direct"].append(key.Direct(obj))
+            if obj["type"] in ["Long", "Slide"]:
+                self.keys["Hold"].append(key.Hold(obj))
