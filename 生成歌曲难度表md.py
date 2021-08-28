@@ -1,7 +1,7 @@
 import csv 
 
-source_file = "歌曲信息\歌曲难度.csv"
-target_path = "歌曲信息/歌曲难度表.md"
+source_file = "歌曲信息/歌曲难度.csv"
+target_path = "歌曲信息查询/歌曲难度表.md"
 md_text = [
     "# 歌曲难度表\n", 
     "<br>\n", 

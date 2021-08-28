@@ -1,6 +1,6 @@
 import csv
 
-from Ichigaya import Chart
+from Ichigaya.chart import Chart
 
 source_path = "歌曲信息/歌曲难度.csv"
 
