@@ -13,7 +13,7 @@ diffs = ["easy", "normal", "hard", "expert", "special"]
 
 
 
-class chart:
+class Chart:
     def __init__(self, ID = None, diff = "expert") -> None:
         self.__ID = ID
         self.__diff = diff
@@ -110,6 +110,15 @@ class chart:
                 self.keys["Direct"].append(key.Direct(obj))
             if obj["type"] in ["Long", "Slide"]:
                 self.keys["Hold"].append(key.Hold(obj))
+        
+        self.amount = sum([len(obj_list) for obj_list in self.keys.values()])
+        combo_hold = sum(len(hold.slides) + 2 for hold in self.keys["Hold"])
+        if self.__diff == "special":
+            combo_hold = sum(
+                sum(
+                    1 for slide in hold.slides if slide.visible
+                ) + 2 for hold in self.keys["Hold"])
+        self.max_combo = self.amount - len(self.keys["Hold"]) + combo_hold
     
     def __proccess_time(self):
         end_beat = self.get_len()
@@ -123,17 +132,20 @@ class chart:
         self.const_speed = len(self.stamp["beat"]) == 0
         self.stamp["beat"].append(end_beat)
         self.stamp["time"].append(60. / self.stamp["bpm"][0] * self.stamp["beat"][0])
+        self.bpm, last_beats = self.stamp["bpm"][0], self.stamp["beat"][0]
         if not self.const_speed:
             for i in range(1, len(self.stamp["beat"])):
                 self.stamp["time"].append(
                     self.stamp["time"][-1] + 60. / self.stamp["bpm"][i] * (
                         self.stamp["beat"][i] - self.stamp["beat"][i-1]))
+                if self.stamp["beat"][i] - self.stamp["beat"][i-1] > last_beats:
+                    self.bpm, last_beats = self.stamp["bpm"][i], self.stamp["beat"][i] - self.stamp["beat"][i-1]
         self.b_s_trans = lambda point, is_beat = True: self.__beat2sec(point) if is_beat else self.__sec2beat(point)
     
     def get_len(self):
         if self.len == 0:
             if self.json == None: self.load()
-            return self.json[-1]["beat"]
+            return self.json[-1]["beat"] if "beat" in self.json[-1].keys() else self.json[-1]["connections"][-1]["beat"]
     
     def __sec2beat(self, s):
         assert s >= 0, "请使用正秒数！"
@@ -155,3 +167,21 @@ class chart:
             if tar[0] > b:
                 return tar[2] - (tar[0] - b) *60. / tar[1]
         
+def get_charts(diff = None, path = "谱面", process = True):
+    if diff == None:
+        return get_charts(diffs, path, process)
+    if isinstance(diff, list):
+        chart_list = []
+        for single in diff: 
+            chart_list += get_charts(single, path, process)
+        return chart_list
+    assert isinstance(diff, str), "难度须为str变量"
+    assert diff in diffs, "难度" + diff + "无法识别"
+    max_id = 500
+    chart_list = [Chart(id, diff) for id in range(1, max_id)]
+    for chart in chart_list: chart.to_path(path)
+    chart_list = [chart for chart in chart_list if chart.exists()]
+    for chart in chart_list: chart.load(process)
+    return sorted(
+        chart_list, 
+        key = lambda chart: chart.get()[0] * 10 + diffs.index(chart.get()[1]))

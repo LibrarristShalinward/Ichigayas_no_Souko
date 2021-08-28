@@ -1,6 +1,6 @@
 import csv
 
-from Ichigaya import chart
+from Ichigaya import Chart
 
 source_path = "歌曲信息/歌曲难度.csv"
 
@@ -12,7 +12,7 @@ with open(source_path, "r", encoding = "UTF-8") as f:
         ID = int(line[0])
         name = line[1]
         for diff in diffs:
-            checking_chart = chart.chart(ID, diff)
+            checking_chart = Chart(ID, diff)
             checking_chart.to_path("谱面")
             status = True
             if checking_chart.exists():
