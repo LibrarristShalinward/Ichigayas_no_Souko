@@ -3,7 +3,7 @@ import csv
 
 id_name_trans = lambda obj: id2name(obj) if isinstance(obj, int) else name2id(obj)
 
-歌曲列表路径 = "歌曲信息/歌曲列表.csv"
+歌曲列表路径 = "歌曲信息（生成用）/歌曲列表.csv"
 with open(歌曲列表路径, "r", encoding = "utf-8") as f:
     reader = csv.reader(f)
     歌曲列表 = [[int(line[0]), line[1]] for line in reader]

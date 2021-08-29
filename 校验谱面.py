@@ -2,7 +2,7 @@ import csv
 
 from Ichigaya.chart import Chart
 
-source_path = "歌曲信息/歌曲难度.csv"
+source_path = "歌曲信息（生成用）/歌曲难度.csv"
 
 with open(source_path, "r", encoding = "UTF-8") as f:
     reader = csv.reader(f)

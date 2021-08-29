@@ -2,7 +2,7 @@ import csv
 
 from Ichigaya.chart import Chart
 
-source_path = "歌曲信息/歌曲难度.csv"
+source_path = "歌曲信息（生成用）/歌曲难度.csv"
 
 #检查缺失谱面
 download_list = []
