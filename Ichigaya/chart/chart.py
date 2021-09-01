@@ -47,6 +47,7 @@ class Chart:
         if process and self.json != None:
             self.__proccess_keys()
             self.__proccess_time()
+            self.__proccess_simo()
         return self.json
     
     def download(self, proccess = False):
@@ -141,6 +142,45 @@ class Chart:
                 if self.stamp["beat"][i] - self.stamp["beat"][i-1] > last_beats:
                     self.bpm, last_beats = self.stamp["bpm"][i], self.stamp["beat"][i] - self.stamp["beat"][i-1]
         self.b_s_trans = lambda point, is_beat = True: self.__beat2sec(point) if is_beat else self.__sec2beat(point)
+    
+    def __proccess_simo(self, bar: int = 16):
+        self.simo = []
+        pre_pro_bars = (int(self.get_len()) // bar + 1) * [[]]
+        for point in self.get_points():
+            bar_idx = int(point[2] / float(bar))
+            tar = pre_pro_bars[bar_idx]
+            if tar == [] or point[2] > tar[-1][2]:
+                pre_pro_bars[bar_idx] = tar + [point]
+                continue
+            for i in range(len(tar)):
+                if point[2] < tar[i][2]:
+                    pre_pro_bars[bar_idx] = pre_pro_bars[bar_idx][:i] + [point] + pre_pro_bars[bar_idx][i:]
+                    break
+                if point[2] == tar[i][2]:
+                    self.simo.append(key.Simo(
+                        tar[i][:2], point[:2], 
+                        point[2], (tar[i][3], point[3])))
+                    pre_pro_bars[bar_idx].pop(i)
+                    break
+        
+        self.schedule = self.simo
+        for tar in pre_pro_bars:
+            self.schedule += tar
+        self.schedule = sorted(self.schedule, 
+            key = lambda event: event[2] 
+            if type(event) == tuple 
+            else event.beat)
+
+    def get_points(self):
+        singles = self.keys["Single"] + self.keys["Flick"] + self.keys["Direct"]
+        for point in singles:
+            yield type(point), None, point.beat, point.lane
+        for hold in self.keys["Hold"]:
+            yield key.Hold, True, hold.touch.beat, hold.touch.lane
+            yield key.Hold, False, hold.release.beat, hold.release.lane
+    
+    def get_point_list(self):
+        return [point for point in self.get_points()]
     
     def get_len(self):
         if self.len == 0:

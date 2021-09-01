@@ -36,15 +36,14 @@ class Single(Note):
 
 class Flick(Single):
     def __init__(self, json = None, beat = 0, lane = 0) -> None:
-        super().__init__(beat=beat, lane=lane, json=json)
-        super().__init__(beat = beat, lane = lane)
+        super().__init__(beat = beat, lane = lane, json = json)
         self.dir = None
 
 class Direct(Flick):
     def __init__(self, json = None, 
         beat = 0, lane =0, 
         dir = "Left", len = 1) -> None:
-        super().__init__(beat=beat, lane=lane, json=json)
+        super().__init__(beat = beat, lane = lane, json = json)
         if json == None:
             self.dir = dir
             self.len = len
@@ -88,3 +87,30 @@ class Hold:
         self.slides = []
         for obj in json["connections"][1:-1]:
             self.slides.append(slide(obj))
+
+class Simo():
+    def __init__(self, obj1 = None , obj2 = None, beat = 0, lane = (0, 0)) -> None:
+        self.beat = beat
+        if lane[0] < lane[1]:
+            self.obj1, self.obj2 = obj1, obj2
+            self.lane = lane
+        else:
+            self.obj1, self.obj2 = obj2, obj1
+            self.lane = lane[1], lane[0]
+    
+    def is_obj1(self, note):
+        if isinstance(note):
+            return self.is_obj1((type(note), None, note.beat, note.lane))
+        else:
+            assert type(note) == tuple
+            return note == self.obj1 + (self.beat, self.lane[0])
+    
+    def is_obj2(self, note):
+        if isinstance(note):
+            return self.is_obj2((type(note), None, note.beat, note.lane))
+        else:
+            assert type(note) == tuple
+            return note == self.obj2 + (self.beat, self.lane[1])
+    
+    def is_included(self, note):
+        return self.is_obj1(note) or self.is_obj2(note)
