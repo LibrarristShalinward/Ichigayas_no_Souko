@@ -47,16 +47,19 @@ class Chart:
         if process and self.json != None:
             self.__proccess_keys()
             self.__proccess_time()
-            # self.__proccess_simo()
+            self.__proccess_simo()
         return self.json
     
     def download(self, proccess = False):
         self.remove()
         self.load(proccess)
+        self.save()
+    
+    def save(self):
         if not exists(self.path): mkdir(self.path)
         with codecs.open(self.file, "w") as f:
             f.write(json.dumps(self.json))
-    
+
     def remove(self):
         if self.exists(): remove(self.file)
     
@@ -185,7 +188,12 @@ class Chart:
     def get_len(self):
         if self.len == 0:
             if self.json == None: self.load()
-            return self.json[-1]["beat"] if "beat" in self.json[-1].keys() else self.json[-1]["connections"][-1]["beat"]
+        return max(
+            self.keys["Single"][-1].beat, 
+            self.keys["Flick"][-1].beat if len(self.keys["Flick"]) > 0 else 0, 
+            self.keys["Direct"][-1].beat if len(self.keys["Direct"]) > 0 else 0, 
+            max([hold.release.beat 
+            for hold in self.keys["Hold"]]) if len(self.keys["Hold"]) > 0 else 0)
     
     def __sec2beat(self, s):
         assert s >= 0, "请使用正秒数！"
