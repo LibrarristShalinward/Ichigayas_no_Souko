@@ -1,8 +1,8 @@
 import csv
 
-name_path = "歌曲信息/歌曲列表.csv"
-abbr_path = "歌曲信息/歌曲名简写.csv"
-target_path = "歌曲信息/歌曲难度.csv"
+name_path = "歌曲信息（生成用）/歌曲列表.csv"
+abbr_path = "歌曲信息（生成用）/歌曲名简写.csv"
+target_path = "歌曲信息（生成用）/歌曲难度.csv"
 
 #拼接歌曲名列表与简称列表
 song_name = []
