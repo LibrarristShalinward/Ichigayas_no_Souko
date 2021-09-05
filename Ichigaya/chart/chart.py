@@ -47,7 +47,7 @@ class Chart:
         if process and self.json != None:
             self.__proccess_keys()
             self.__proccess_time()
-            self.__proccess_simo()
+            # self.__proccess_simo()
         return self.json
     
     def download(self, proccess = False):
