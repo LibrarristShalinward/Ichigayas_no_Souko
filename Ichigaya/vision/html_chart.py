@@ -1,5 +1,5 @@
 from Ichigaya.chart import key
-from ..chart import Single, Hold, Direct, Simo, Chart
+from ..chart import Single, Flick, Hold, Direct, Simo, Chart, slide
 import json
 import codecs
 from os.path import dirname
@@ -69,8 +69,8 @@ class LayerGroupView(LayerView):
             for layer_view in self.layer_group:
                 view = layer_view.view_layer()(idx)
                 if type(view) != type(None):
-                    return view
-            return None
+                    break
+            return view
         return layer
 
 class ClearChartView(LayerView):
@@ -92,8 +92,14 @@ class SingleView(Single, LayerView):
         self.hand = single.hand
         self.ocp_lines = [self.line]
         if type(hold_rls) == type(None):
-            self.view_idx = "Single" if type(single) == Single else "Flick"
+            if type(single) == Single:
+                self.view_idx = "Single"
+            elif type(single) == Flick:
+                self.view_idx = "Flick"
+            else:
+                self.view_idx = "Hold_node"
         else:
+            assert type(single) != slide
             if hold_rls:
                 self.view_idx = "Hold_release" if type(single) == Single else "Hold_flick"
             else: 
@@ -153,5 +159,23 @@ class DirectView(Direct, LayerView):
             if l == self.line:
                 if key_range[0] <= p and p < key_range[1]:
                     return view[p - key_range[0]]
+            return None
+        return layer
+
+class SingleSeireView(LayerGroupView):
+    def __init__(self, group: list = []):
+        super().__init__(group = group)
+        self.ocp_lines = []
+        for single in group:
+            assert isinstance(single, SingleView)
+            assert not single.line in self.ocp_lines
+            self.ocp_lines.append(single.line)
+    
+    def view_layer(self):
+        def layer(idx):
+            l, _ = idx
+            if l in self.ocp_lines: 
+                i = self.ocp_lines.index(l)
+                return self.layer_group[i].view_layer()(idx)
             return None
         return layer
