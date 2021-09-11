@@ -28,6 +28,11 @@ Combo排行md = MDChart(
     "歌曲信息（查询用）/连击排行.md", 
     "歌曲最大Combo数排行", 
     ["排位", "ID", "曲名", "难度", "最大Combo数"])
+键间隔排行md = MDChart(
+    "歌曲信息（查询用）/键间隔排行.md", 
+    "歌曲键间隔排行", 
+    ["排位", "ID", "曲名", "难度", "键间隔（拍）", "键间隔（ms）", "等效触键频率（Hz）"], 
+    True)
 
 
 
@@ -79,14 +84,32 @@ for i in range(1, len(Combo排行list)):
     if Combo排行list[i][-1] == Combo排行list[i - 1][-1]:
         Combo排行list[i][0] = Combo排行list[i - 1][0]
 
+charts = sorted(
+    all_charts, 
+    key = lambda chart: chart.get_min_retouch()[0][2])
+键间隔排行list = [[
+        charts.index(chart) + 1, 
+        chart.get()[0], 
+        id_name_trans(chart.get()[0]), 
+        chart.get()[1], 
+        chart.get_min_retouch()[0][0], 
+        chart.get_min_retouch()[0][2] * 1000., 
+        1. / chart.get_min_retouch()[0][2]
+    ] for chart in charts]
+for i in range(1, len(键间隔排行list)):
+    if 键间隔排行list[i][-1] == 键间隔排行list[i - 1][-1]:
+        键间隔排行list[i][0] = 键间隔排行list[i - 1][0]
+
 
 
 歌曲难度表md.write_table(歌曲难度表list)
 BPM排行md.write_table(BPM排行list)
 按键数排行md.write_table(按键数排行list)
 Combo排行md.write_table(Combo排行list)
+键间隔排行md.write_table(键间隔排行list)
 
 歌曲难度表md.export()
 BPM排行md.export()
 按键数排行md.export()
 Combo排行md.export()
+键间隔排行md.export()
