@@ -1,26 +1,27 @@
+import 初始化路径
+
 import csv
-from Ichigaya import chart 
 from Ichigaya.vision import MDChart
 from Ichigaya.chart import get_charts
 from Ichigaya.utils import id_name_trans
 
 
-
-歌曲难度表source_file = "歌曲信息（生成用）/歌曲难度.csv"
+main_path = "././"
+歌曲难度表source_file = main_path + "歌曲信息（生成用）/歌曲难度.csv"
 all_charts = get_charts()
 
 
 
 歌曲难度表md = MDChart(
-    "歌曲信息（查询用）/歌曲难度表.md", 
+    main_path + "歌曲信息（查询用）/歌曲难度表.md", 
     "歌曲难度表", 
     ["ID", "曲名", "简写", "Es", "Nr", "Hd", "Ex", "Sp"])
 BPM排行md = MDChart(
-    "歌曲信息（查询用）/速度排行.md", 
+    main_path + "歌曲信息（查询用）/速度排行.md", 
     "歌曲速度排行", 
     ["排位", "ID", "曲名", "BPM"])
 按键数排行md = MDChart(
-    "歌曲信息（查询用）/按键数排行.md", 
+    main_path + "歌曲信息（查询用）/按键数排行.md", 
     "歌曲按键数排行", 
     ["排位", "ID", "曲名", "难度", "按键数"])
 Combo排行md = MDChart(

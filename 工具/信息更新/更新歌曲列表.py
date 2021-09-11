@@ -1,7 +1,8 @@
 import csv
 import requests
 
-target_path = "歌曲信息（生成用）/歌曲列表.csv"
+main_path = "././"
+target_path = main_path + "歌曲信息（生成用）/歌曲列表.csv"
 
 #获取歌曲列表
 clinet = requests.get("https://bestdori.com/api/songs/all.1.json")

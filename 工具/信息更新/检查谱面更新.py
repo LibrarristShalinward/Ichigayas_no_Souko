@@ -1,8 +1,10 @@
 import csv
-
+import 初始化路径
 from Ichigaya.chart import Chart
 
-source_path = "歌曲信息（生成用）/歌曲难度.csv"
+main_path = "././"
+source_path = main_path + "歌曲信息（生成用）/歌曲难度.csv"
+target_path = main_path + "谱面"
 
 #检查缺失谱面
 download_list = []
@@ -17,7 +19,7 @@ with open(source_path, "r", encoding = "UTF-8") as f:
         for diff in diffs:
             new_chart = Chart(ID, diff)
             new_chart.set_name(name)
-            new_chart.to_path("谱面")
+            new_chart.to_path(target_path)
             if not new_chart.exists():
                 print("谱面缺失：\t难度：%s\t曲目：%s" %(diff.ljust(8), name))
                 missing = True
