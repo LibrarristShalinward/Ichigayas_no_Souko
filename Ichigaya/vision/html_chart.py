@@ -1,15 +1,16 @@
+from scipy.interpolate.interpolate import interp1d
 from Ichigaya.chart import key
 from ..chart import Single, Flick, Hold, Direct, Simo, Chart, slide
 import json
 import codecs
 from os.path import dirname
+from scipy.interpolate import interp1d
+from numpy import array
 
 current_path = dirname(__file__)
 std_lane_width = 15
-lane_start_idx = [1]
-for i in range(1, 7):
-    lane_start_idx.append(lane_start_idx[-1] + std_lane_width + 1)
-lane_range = lambda lane: (lane_start_idx[lane], lane_start_idx[lane] + std_lane_width)
+l2i = lambda lane: int(1. + (std_lane_width + 1.) * lane)
+lane_range = lambda lane: (l2i(lane), l2i(lane) + std_lane_width)
 
 class ViewSkin():
     key_names = ["size"], ["single", "Flick", "Hold_touch", "Hold_release", "Hold_flick", "Hold_body", "Hold_node", "Left_1", "Right_1"], ["Left_2", "Right_2"], ["Left_3", "Right_3"]
@@ -68,7 +69,7 @@ class LayerGroupView(LayerView):
         def layer(idx):
             for layer_view in self.layer_group:
                 view = layer_view.view_layer()(idx)
-                if type(view) != type(None):
+                if type(view) != type(None) and view != "#":
                     break
             return view
         return layer
@@ -177,5 +178,48 @@ class SingleSeireView(LayerGroupView):
             if l in self.ocp_lines: 
                 i = self.ocp_lines.index(l)
                 return self.layer_group[i].view_layer()(idx)
+            return None
+        return layer
+
+class LongBgView(LayerView):
+    def __init__(self, touch: Single, release: Single, l2b, slides = [], method = "cubic"):
+        super().__init__()
+        assert release.beat > touch.beat
+        self.touch = touch
+        self.release = release
+        self.slides = slides
+        self.l2b = l2b
+        self.ocp_lines = [l for l in range(touch.beat, release.beat)]
+        self.method = method
+        self.b2l = self.get_l_b_func()
+    
+    def get_l_b_func(self):
+        if len(self.slides) == 0:
+            return lambda b : (b - self.touch.beat) / (self.release.beat - self.touch.beat) * (self.release.lane - self.touch.lane) + self.touch.lane
+        else:
+            nodes = [self.touch] + self.slides + [self.release]
+            return interp1d(
+                x = array([node.beat for node in nodes]), 
+                y = array([node.lane for node in nodes]), 
+                kind = self.method)
+    
+    def line2lane(self, line):
+        lane = self.b2l(self.l2b(line))
+        if lane < 0.:
+            return 0
+        elif lane > 6.:
+            return 6
+        else:
+            return lane
+    
+    def view_layer(self, skin: ViewSkin = default_skin):
+        line2range = lambda line: lane_range(self.line2lane(line))
+        view = skin()["Hold_node"]
+        def layer(idx):
+            l, p = idx
+            if l in self.ocp_lines:
+                node_range = line2range(l)
+                if node_range[0] <= p and p < node_range[1]:
+                    return view[p - node_range[0]]
             return None
         return layer
