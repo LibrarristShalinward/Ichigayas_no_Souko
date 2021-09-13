@@ -272,3 +272,33 @@ class SimoBgView(Simo, LayerView):
             if simo_range[0] <= p and p < simo_range[1]:
                 return skin()["Simo_link"]
         return layer
+
+class LineView(LayerGroupView):
+    def __init__(self, line, touches = [], simo = None, bg = None):
+        self.line = line
+        self.touches = touches
+        self.simo = simo
+        self.bg = ClearChartView(line) if type(bg) == type(None) else bg
+        self.__verify()
+        self.__construct()
+    
+    def __verify(self):
+        for obj in self.touches:
+            assert type(obj) in [SingleView, DirectView, HoldView], "交互图层对象类型为%s"%(str(type(obj)))
+        assert type(self.simo) in [SimoBgView, type(None)], "同时线图层对象类型为%s，应为%s"%(str(type(self.simo)), str(SimoBgView))
+        assert type(self.bg) == ClearChartView, "背景图层对象类型为%s，应为%s"%(str(type(self.bg)), str(ClearChartView))
+
+        if type(self.simo) == SimoBgView:
+            assert len(self.touches) == 2, "仅在有%i各交互对象时可以设置同时线，当前有%i个对象"%(2, len(self.touches))
+        
+        for obj in self.touches + [self.simo] if not type(self.simo) == type(None) else self.touches:
+            assert self.line in obj.ocp_line, "当前图层为第%i行可视化，但对象不包含此行"
+        
+    def __construct(self):
+        group = []
+        if len(self.obj) > 0:
+            group += self.obj
+        if not type(self.simo) == type(None):
+            group.append(self.simo)
+        group.append(self.bg)
+        super().__init__(group = group)
