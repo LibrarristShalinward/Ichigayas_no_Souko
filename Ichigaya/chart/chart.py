@@ -193,7 +193,7 @@ class Chart:
                     pre_pro_bars[bar_idx].pop(i)
                     break
         
-        self.schedule = self.simo
+        self.schedule = [] + self.simo
         for tar in pre_pro_bars:
             self.schedule += tar
         self.schedule = sorted(self.schedule, 

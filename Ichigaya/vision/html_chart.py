@@ -6,6 +6,7 @@ import codecs
 from os.path import dirname
 from scipy.interpolate import interp1d
 from numpy import array
+import logging
 import warnings as w
 
 from Ichigaya import chart
@@ -98,7 +99,7 @@ class ClearChartView(LayerView):
 class SingleView(Single, LayerView):
     def __init__(self, single, b2l, hold_rls = None) -> None:
         Single.__init__(self, beat = single.beat, lane = single.lane)
-        self.line = b2l(single.beat)
+        self.line = int(b2l(single.beat))
         self.hand = getattr(single, "hand", None)
         self.ocp_lines = [self.line]
         if type(hold_rls) == type(None):
@@ -139,7 +140,7 @@ class SingleView(Single, LayerView):
 class DirectView(Direct, LayerView):
     def __init__(self, direct, b2l) -> None:
         Direct.__init__(self, beat = direct.beat, lane = direct.lane, dir= direct.dir, len = direct.len)
-        self.line = b2l(direct.beat)
+        self.line = int(b2l(direct.beat))
         self.hand = direct.hand
         self.ocp_lines = [self.line]
         self.view_idx = self.dir + "_" + str(self.len + 1)
@@ -273,7 +274,7 @@ class SimoBgView(Simo, LayerView):
     def __init__(self, simo: Simo, b2l) -> None:
         Simo.__init__(self, obj1 = simo.obj1, obj2 = simo.obj2, 
             beat = simo.beat, lane = simo.lane)
-        self.line = b2l(self.beat)
+        self.line = int(b2l(self.beat))
         self.ocp_lines = [self.line]
     
     def view_layer(self, skin: ViewSkin = default_skin):
@@ -304,12 +305,12 @@ class LineView(LayerGroupView):
             assert len(self.touches) == 2, "仅在有%i各交互对象时可以设置同时线，当前有%i个对象"%(2, len(self.touches))
         
         for obj in self.touches + [self.simo] if not type(self.simo) == type(None) else self.touches:
-            assert self.line in obj.ocp_line, "当前图层为第%i行可视化，但对象不包含此行"
+            assert self.line in obj.ocp_lines, "当前图层为第%i行可视化，但对象包含%s行"%(self.line, str(obj.ocp_lines))
         
     def __construct(self):
         group = []
-        if len(self.obj) > 0:
-            group += self.obj
+        if len(self.touches) > 0:
+            group += self.touches
         if not type(self.simo) == type(None):
             group.append(self.simo)
         group.append(self.bg)
@@ -321,52 +322,64 @@ class ChartView(LayerGroupView):
         self.method = curve_method
 
         self.set_lpb(bps)
+        w.warn("谱面初始化完成！")
         self.process()
 
-        
+        self.line_views = []
+        for l in range(self.num_line):
+            if l % 100 == 0 or l == self.num_line - 1:
+                w.warn("%i/%i行构建完成"%(l, self.num_line))
+            self.line_views.append(self.get_line_view(l))
 
     def set_lpb(self, bps):
         assert bps in [1, 2, 4, None], "每秒近似拍数须为1、2、4，输入的%s不合法"%(str(bps))
         if type(bps) == type(None):
-            expand = chart.bpm / 60.
+            expand = self.chart.bpm / 60.
             if expand < 1.41:
                 self.lpb = 64
-            elif expand > 2.82:
+            elif expand > 3.5:
                 self.lpb = 16
             else: 
                 self.lpb = 32
         else: 
             self.lpb = 64 // bps
-        self.num_line = int(self.lpb * self.chart.len) + 1
-        self.line_repo = [{
+        self.set_trans()
+        self.num_line = int(self.lpb * self.chart.get_len()) + 1
+        
+        self.line_repo = []
+        for _ in range(self.num_line): self.line_repo.append({
             "touch": [], 
-            "simo": None
-        }] * self.num_line
+            "simo": None})
 
     def set_trans(self):
         self.b2l = lambda beat: 1. * beat * self.lpb
-        self.b2l = lambda line: 1. * line // self.lpb
+        self.l2b = lambda line: 1. * line // self.lpb
     
     def process(self):
         for single in self.chart.keys["Single"] + self.chart.keys["Flick"]:
             single_view = SingleView(single, self.b2l)
             self.line_repo[single_view.ocp_lines[0]]["touch"].append(single_view)
+        w.warn("单键与划键加载完成！")
         
         for direct in self.chart.keys["Direct"]:
             direct_view = DirectView(direct, self.b2l)
             self.line_repo[direct_view.ocp_lines[0]]["touch"].append(direct_view)
+        w.warn("定向划键加载完成！")
         
         for hold in self.chart.keys["Hold"]:
             hold_view = HoldView(hold, self.b2l, self.l2b, self.method)
             for l in hold_view.ocp_lines:
                 self.line_repo[l]["touch"].append(hold_view)
+        w.warn("长键加载完成！")
         
         for simo in self.chart.simo:
             simo_line = SimoBgView(simo, self.b2l)
             self.line_repo[simo_line.ocp_lines[0]]["simo"] = simo_line
+        w.warn("同时线加载完成！")
         
         self.bg_chart = ClearChartView(self.num_line)
         self.bg_char = " "
+        w.warn("谱面背景加载完成！")
     
     def get_line_view(self, line):
         return LineView(line, self.line_repo[line]["touch"], self.line_repo[line]["simo"], self.bg_chart)
@@ -374,7 +387,7 @@ class ChartView(LayerGroupView):
     def view_layer(self, skin: ViewSkin = default_skin):
         def layer(idx):
             l, _ = idx
-            line_view = self.get_line_view(l)
+            line_view = self.line_views[l]
             return line_view.view_layer(skin)(idx)
         return layer
     
