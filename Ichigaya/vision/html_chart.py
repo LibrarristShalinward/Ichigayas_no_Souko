@@ -122,11 +122,9 @@ class SingleView(Single, LayerView):
         key_range = lane_range(self.lane)
         view = self.get_view()
         def layer(idx):
-            l, p = idx
-            if l == self.line:
-                if key_range[0] <= p and p < key_range[1]:
-                    return view[p - key_range[0]]
-            return None
+            _, p = idx
+            if key_range[0] <= p and p < key_range[1]:
+                return view[p - key_range[0]]
         return layer
 
 class DirectView(Direct, LayerView):
@@ -156,11 +154,9 @@ class DirectView(Direct, LayerView):
             key_range[1] += (std_lane_width + 1) * (self.len - 1)
         view = self.get_view()
         def layer(idx):
-            l, p = idx
-            if l == self.line:
-                if key_range[0] <= p and p < key_range[1]:
-                    return view[p - key_range[0]]
-            return None
+            _, p = idx
+            if key_range[0] <= p and p < key_range[1]:
+                return view[p - key_range[0]]
         return layer
 
 class SingleSeireView(LayerGroupView):
@@ -175,10 +171,8 @@ class SingleSeireView(LayerGroupView):
     def view_layer(self):
         def layer(idx):
             l, _ = idx
-            if l in self.ocp_lines: 
-                i = self.ocp_lines.index(l)
-                return self.layer_group[i].view_layer()(idx)
-            return None
+            i = self.ocp_lines.index(l)
+            return self.layer_group[i].view_layer()(idx)
         return layer
 
 class LongBgView(LayerView):
@@ -208,11 +202,9 @@ class LongBgView(LayerView):
         view = skin()["Hold_node"]
         def layer(idx):
             l, p = idx
-            if l in self.ocp_lines:
-                node_range = line2range(l)
-                if node_range[0] <= p and p < node_range[1]:
-                    return view[p - node_range[0]]
-            return None
+            node_range = line2range(l)
+            if node_range[0] <= p and p < node_range[1]:
+                return view[p - node_range[0]]
         return layer
 
 class SlideBgView(LongBgView):
@@ -261,3 +253,13 @@ class HoldView(Hold, LayerGroupView):
         hold_bg_view = HoldBgView(hold, l2b, method)
 
         LayerGroupView.__init__(self, [single_seire_view, hold_bg_view])
+
+class SimoBgView(Simo, LayerView):
+    def __init__(self, simo: Simo, b2l) -> None:
+        Simo.__init__(obj1 = simo.obj1, obj2 = simo.obj2, 
+            beat = simo.beat, lane = simo.lane)
+        self.line = b2l(self.beat)
+        self.ocp_lines = [self.line]
+    
+    def view_layer(self):
+        pass
