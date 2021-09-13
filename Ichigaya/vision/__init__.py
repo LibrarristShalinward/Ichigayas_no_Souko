@@ -1,2 +1,2 @@
 from .md_chart import MDChart
-from .html_chart import ClearChartView, SingleView
+from .html_chart import ClearChartView, SingleView, HoldView

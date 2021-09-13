@@ -6,6 +6,7 @@ import codecs
 from os.path import dirname
 from scipy.interpolate import interp1d
 from numpy import array
+import warnings as w
 
 current_path = dirname(__file__)
 std_lane_width = 15
@@ -70,10 +71,13 @@ class LayerGroupView(LayerView):
     
     def view_layer(self):
         def layer(idx):
+            l, _ = idx
+            view = None
             for layer_view in self.layer_group:
-                view = layer_view.view_layer()(idx)
-                if type(view) != type(None) and view != "#":
-                    break
+                if l in layer_view.ocp_lines:
+                    view = layer_view.view_layer()(idx)
+                    if type(view) != type(None) and view != "#":
+                        break
             return view
         return layer
 
@@ -93,7 +97,7 @@ class SingleView(Single, LayerView):
     def __init__(self, single, b2l, hold_rls = None) -> None:
         Single.__init__(self, beat = single.beat, lane = single.lane)
         self.line = b2l(single.beat)
-        self.hand = single.hand
+        self.hand = getattr(single, "hand", None)
         self.ocp_lines = [self.line]
         if type(hold_rls) == type(None):
             if type(single) == Single:
@@ -111,14 +115,14 @@ class SingleView(Single, LayerView):
                 self.view_idx = "Hold_touch"
     
     def get_view(self, skin: ViewSkin = default_skin):
-        org_view = skin()[self.view_idx]
+        view = skin()[self.view_idx]
         radius = (std_lane_width - 1) // 2
         if type(self.hand) != type(None):
             if self.hand:
                 label = "R"
             else:
                 label = "L"
-            view = org_view[:radius] + label + org_view[radius + 1:]
+            view = view[:radius] + label + view[radius + 1:]
         return view
     
     def view_layer(self):
@@ -179,13 +183,15 @@ class SingleSeireView(LayerGroupView):
         return layer
 
 class LongBgView(LayerView):
-    def __init__(self, touch: Single, release: Single, l2b):
+    def __init__(self, touch: Single, release: Single, b2l, l2b):
         super().__init__()
         assert release.beat > touch.beat
         self.touch = touch
         self.release = release
         self.l2b = l2b
-        self.ocp_lines = [l for l in range(touch.beat, release.beat)]
+        self.ocp_lines = [l for l in range(
+            int(b2l(touch.beat)), 
+            int(b2l(release.beat)))]
         self.b2l = self.get_l_b_func()
     
     def get_l_b_func(self):
@@ -202,7 +208,7 @@ class LongBgView(LayerView):
     
     def view_layer(self, skin: ViewSkin = default_skin):
         line2range = lambda line: lane_range(self.line2lane(line))
-        view = skin()["Hold_node"]
+        view = skin()["Hold_body"]
         def layer(idx):
             l, p = idx
             node_range = line2range(l)
@@ -211,10 +217,10 @@ class LongBgView(LayerView):
         return layer
 
 class SlideBgView(LongBgView):
-    def __init__(self, touch: Single, release: Single, l2b, slides = [], method = "cubic"):
+    def __init__(self, touch: Single, release: Single, b2l, l2b, slides = [], method = "cubic"):
         self.slides = slides
         self.method = method
-        super().__init__(touch = touch, release = release, l2b = l2b)
+        super().__init__(touch = touch, release = release, b2l = b2l, l2b = l2b)
         
     def get_l_b_func(self):
         if len(self.slides) == 0:
@@ -227,39 +233,43 @@ class SlideBgView(LongBgView):
                 kind = self.method)
 
 class HoldBgView(Hold, LayerGroupView):
-    def __init__(self, hold: Hold, l2b, method = "cubic") -> None:
-        Hold.__init__(notes = [hold.touch] + hold.slides + [hold.release])
+    def __init__(self, hold: Hold, b2l, l2b, method = "cubic") -> None:
+        Hold.__init__(self, notes = [hold.touch] + hold.slides + [hold.release])
         
-        spr_slides = [[*self.touch]]
+        spr_slides = [[self.touch]]
         for node in self.slides:
-            spr_slides[-1].append(*node)
+            spr_slides[-1].append(node)
             if node.visible:
-                spr_slides.append([*node])
+                spr_slides.append([node])
         spr_slides[-1].append(self.release)
 
         long_bg_view_list = []
         for group in spr_slides:
             if len(group) == 2:
-                long_bg_view_list.append(LongBgView(group[0], group[-1], l2b))
+                long_bg_view_list.append(LongBgView(group[0], group[-1], b2l, l2b))
             else:
-                long_bg_view_list.append(SlideBgView(group[0], group[-1], l2b, 
+                long_bg_view_list.append(SlideBgView(group[0], group[-1], b2l, l2b, 
                     slides = group[1:-1], method = method))
         
         LayerGroupView.__init__(self, long_bg_view_list)
 
 class HoldView(Hold, LayerGroupView):
-    def __init__(self, hold: Hold, l2b, method = "cubic") -> None:
+    def __init__(self, hold: Hold, b2l, l2b, method = "cubic") -> None:
         node_group = [hold.touch] + hold.slides + [hold.release]
-        Hold.__init__(notes = node_group)
+        Hold.__init__(self, notes = node_group)
 
-        single_seire_view = SingleSeireView([node for node in node_group if node.visible])
-        hold_bg_view = HoldBgView(hold, l2b, method)
+        single_seire = [
+            SingleView(hold.touch, b2l, False)] + [
+            SingleView(node, b2l) for node in hold.slides if node.visible] + [
+            SingleView(hold.release, b2l, True)]
+        single_seire_view = SingleSeireView(single_seire)
+        hold_bg_view = HoldBgView(hold, b2l, l2b, method)
 
         LayerGroupView.__init__(self, [single_seire_view, hold_bg_view])
 
 class SimoBgView(Simo, LayerView):
     def __init__(self, simo: Simo, b2l) -> None:
-        Simo.__init__(obj1 = simo.obj1, obj2 = simo.obj2, 
+        Simo.__init__(self, obj1 = simo.obj1, obj2 = simo.obj2, 
             beat = simo.beat, lane = simo.lane)
         self.line = b2l(self.beat)
         self.ocp_lines = [self.line]
