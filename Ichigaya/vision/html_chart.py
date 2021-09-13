@@ -13,7 +13,7 @@ l2i = lambda lane: int(1. + (std_lane_width + 1.) * lane)
 lane_range = lambda lane: (l2i(lane), l2i(lane) + std_lane_width)
 
 class ViewSkin():
-    key_names = ["size"], ["single", "Flick", "Hold_touch", "Hold_release", "Hold_flick", "Hold_body", "Hold_node", "Left_1", "Right_1"], ["Left_2", "Right_2"], ["Left_3", "Right_3"]
+    key_names = ["size"], ["single", "Flick", "Hold_touch", "Hold_release", "Hold_flick", "Hold_body", "Hold_node", "Left_1", "Right_1"], ["Left_2", "Right_2"], ["Left_3", "Right_3"], ["Simo_link"]
     def __init__(self, type = "classic") -> None:
         self.type = type
         self.path = current_path + "\\html_chart_skin\\" + self.type + ".json"
@@ -32,11 +32,14 @@ class ViewSkin():
         act_lane_width = self.json[self.key_names[0][0]]
         assert act_lane_width == std_lane_width, "键宽异常：应为%i，实际为%i"%(std_lane_width, act_lane_width)
 
-        for i, group in enumerate(self.key_names[1:]):
+        for i, group in enumerate(self.key_names[1:4]):
             std_len = std_lane_width * (i + 1) + i
             for obj in group:
                 act_len = len(self.json[obj])
                 assert act_len == std_len, "皮肤长度异常：键%s长度应为%i，实际为%i"%(obj, std_len, act_len)
+        obj = self.key_names[4][0]
+        std_len, act_len = 1, len(self.json[obj])
+        assert act_len == std_len, "皮肤长度异常：键%s长度应为%i，实际为%i"%(obj, std_len, act_len)
     
     def __call__(self):
         return self.json
@@ -262,4 +265,4 @@ class SimoBgView(Simo, LayerView):
         self.ocp_lines = [self.line]
     
     def view_layer(self):
-        pass
+        simo_range = 0
