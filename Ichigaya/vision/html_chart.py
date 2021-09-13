@@ -264,5 +264,11 @@ class SimoBgView(Simo, LayerView):
         self.line = b2l(self.beat)
         self.ocp_lines = [self.line]
     
-    def view_layer(self):
-        simo_range = 0
+    def view_layer(self, skin: ViewSkin = default_skin):
+        radius = (std_lane_width - 1) // 2
+        simo_range = lane_range(self.lane[0])[0] + radius, lane_range(self.lane[1])[0] + radius
+        def layer(idx):
+            _, p = idx
+            if simo_range[0] <= p and p < simo_range[1]:
+                return skin()["Simo_link"]
+        return layer
