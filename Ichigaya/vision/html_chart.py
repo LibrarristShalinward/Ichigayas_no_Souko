@@ -8,6 +8,8 @@ from scipy.interpolate import interp1d
 from numpy import array
 import warnings as w
 
+from Ichigaya import chart
+
 current_path = dirname(__file__)
 std_lane_width = 15
 l2i = lambda lane: int(1. + (std_lane_width + 1.) * lane)
@@ -69,13 +71,13 @@ class LayerGroupView(LayerView):
                     self.ocp_lines.append(line)
         self.ocp_lines = sorted(self.ocp_lines)
     
-    def view_layer(self):
+    def view_layer(self, skin: ViewSkin = default_skin):
         def layer(idx):
             l, _ = idx
             view = None
             for layer_view in self.layer_group:
                 if l in layer_view.ocp_lines:
-                    view = layer_view.view_layer()(idx)
+                    view = layer_view.view_layer(skin)(idx)
                     if type(view) != type(None) and view != "#":
                         break
             return view
@@ -85,7 +87,7 @@ class ClearChartView(LayerView):
     def __init__(self, length):
         self.ocp_lines = [i for i in range(length)]
 
-    def view_layer(self):
+    def view_layer(self, _: ViewSkin = default_skin):
         def layer(idx):
             _, p = idx
             if p % (std_lane_width + 1) == 0:
@@ -125,9 +127,9 @@ class SingleView(Single, LayerView):
             view = view[:radius] + label + view[radius + 1:]
         return view
     
-    def view_layer(self):
+    def view_layer(self, skin: ViewSkin = default_skin):
         key_range = lane_range(self.lane)
-        view = self.get_view()
+        view = self.get_view(skin)
         def layer(idx):
             _, p = idx
             if key_range[0] <= p and p < key_range[1]:
@@ -155,11 +157,11 @@ class DirectView(Direct, LayerView):
             view = org_view[:radius] + label + org_view[radius + 1:]
         return view
     
-    def view_layer(self):
+    def view_layer(self, skin: ViewSkin = default_skin):
         key_range = lane_range(self.lane)
         if self.len > 1:
             key_range[1] += (std_lane_width + 1) * (self.len - 1)
-        view = self.get_view()
+        view = self.get_view(skin)
         def layer(idx):
             _, p = idx
             if key_range[0] <= p and p < key_range[1]:
@@ -175,11 +177,11 @@ class SingleSeireView(LayerGroupView):
             assert not single.line in self.ocp_lines
             self.ocp_lines.append(single.line)
     
-    def view_layer(self):
+    def view_layer(self, skin: ViewSkin = default_skin):
         def layer(idx):
             l, _ = idx
             i = self.ocp_lines.index(l)
-            return self.layer_group[i].view_layer()(idx)
+            return self.layer_group[i].view_layer(skin)(idx)
         return layer
 
 class LongBgView(LayerView):
@@ -312,3 +314,80 @@ class LineView(LayerGroupView):
             group.append(self.simo)
         group.append(self.bg)
         super().__init__(group = group)
+
+class ChartView(LayerGroupView):
+    def __init__(self, chart: Chart, bps = None, curve_method = "cubic"):
+        self.chart = chart
+        self.method = curve_method
+
+        self.set_lpb(bps)
+        self.process()
+
+        
+
+    def set_lpb(self, bps):
+        assert bps in [1, 2, 4, None], "每秒近似拍数须为1、2、4，输入的%s不合法"%(str(bps))
+        if type(bps) == type(None):
+            expand = chart.bpm / 60.
+            if expand < 1.41:
+                self.lpb = 64
+            elif expand > 2.82:
+                self.lpb = 16
+            else: 
+                self.lpb = 32
+        else: 
+            self.lpb = 64 // bps
+        self.num_line = int(self.lpb * self.chart.len) + 1
+        self.line_repo = [{
+            "touch": [], 
+            "simo": None
+        }] * self.num_line
+
+    def set_trans(self):
+        self.b2l = lambda beat: 1. * beat * self.lpb
+        self.b2l = lambda line: 1. * line // self.lpb
+    
+    def process(self):
+        for single in self.chart.keys["Single"] + self.chart.keys["Flick"]:
+            single_view = SingleView(single, self.b2l)
+            self.line_repo[single_view.ocp_lines[0]]["touch"].append(single_view)
+        
+        for direct in self.chart.keys["Direct"]:
+            direct_view = DirectView(direct, self.b2l)
+            self.line_repo[direct_view.ocp_lines[0]]["touch"].append(direct_view)
+        
+        for hold in self.chart.keys["Hold"]:
+            hold_view = HoldView(hold, self.b2l, self.l2b, self.method)
+            for l in hold_view.ocp_lines:
+                self.line_repo[l]["touch"].append(hold_view)
+        
+        for simo in self.chart.simo:
+            simo_line = SimoBgView(simo, self.b2l)
+            self.line_repo[simo_line.ocp_lines[0]]["simo"] = simo_line
+        
+        self.bg_chart = ClearChartView(self.num_line)
+        self.bg_char = " "
+    
+    def get_line_view(self, line):
+        return LineView(line, self.line_repo[line]["touch"], self.line_repo[line]["simo"], self.bg_chart)
+
+    def view_layer(self, skin: ViewSkin = default_skin):
+        def layer(idx):
+            l, _ = idx
+            line_view = self.get_line_view(l)
+            return line_view.view_layer(skin)(idx)
+        return layer
+    
+    def get_line(self):
+        layer = self.view_layer()
+        text = []
+        for l in range(self.num_line):
+            line_str = ""
+            for p in range((std_lane_width + 1) * 7 + 1):
+                rep_char = layer((l, p))
+                if type(rep_char) == type(None) or rep_char == "#":
+                    line_str += self.bg_char
+                else:
+                    line_str = rep_char
+            text.append(line_str)
+        return text
