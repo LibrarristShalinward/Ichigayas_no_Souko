@@ -34,10 +34,11 @@ class MDLines:
             f.writelines(line + "\n" for line in self.__text)
 
 class MDChart(MDLines):
-    def __init__(self, path, title: str = "", col_title: list = [""]) -> None:
+    def __init__(self, path, title: str = "", col_title: list = [""], float_cut = False) -> None:
         super().__init__(path)
         self.set_title(title)
         self.set_col_title(col_title)
+        self.__cut = float_cut
     
     def set_title(self, title: str = ""):
         self.__title = title
@@ -58,7 +59,10 @@ class MDChart(MDLines):
         for item in itemlist:
             line += "|"
             try:
-                line += str(item)
+                if type(item) == float and self.__cut:
+                    line += "%.4f"%(item)
+                else:
+                    line += str(item)
             except:
                 pass
         line += "|"

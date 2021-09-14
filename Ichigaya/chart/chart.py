@@ -31,6 +31,9 @@ class Chart:
             "time": []
         }
         self.const_speed = None
+
+        self.min_retouch = None
+        self.schedule = None
     
     def exists(self):return exists(self.file)
 
@@ -84,6 +87,30 @@ class Chart:
     
     def get(self): 
         return self.__ID, self.__diff, self.__name
+    
+    def get_min_retouch(self):
+        if type(self.schedule) == type(None):
+            self.__proccess_simo()
+        
+        min_retouch = (self.get_len(), 0., None), (self.get_len(), 0., None)
+
+        beat_list = [(obj[2] if type(obj) == tuple else obj.beat) for obj in self.schedule]
+        for i in range(len(beat_list) - 1):
+            retouch = beat_list[i + 1] - beat_list[i]
+            if retouch < min_retouch[0][0]:
+                min_retouch = (retouch, beat_list[i], 
+                    self.b_s_trans(beat_list[i + 1]) - self.b_s_trans(beat_list[i])), min_retouch[1]
+        
+        for hold in [hold for hold in self.keys["Hold"] if len(hold.slides) > 0]:
+            node_list = [hold.touch] + [node for node in hold.slides if node.visible] + [hold.release]
+            for i in range(len(node_list) - 1):
+                retouch = node_list[i + 1].beat - node_list[i].beat
+                if retouch < min_retouch[1][0]:
+                    min_retouch = min_retouch[0], (retouch, node_list[i].beat, 
+                        self.b_s_trans(node_list[i + 1].beat) - self.b_s_trans(node_list[i].beat))
+
+        self.min_retouch = min_retouch
+        return min_retouch
     
     def size(self):
         if self.exists():
@@ -166,7 +193,7 @@ class Chart:
                     pre_pro_bars[bar_idx].pop(i)
                     break
         
-        self.schedule = self.simo
+        self.schedule = [] + self.simo
         for tar in pre_pro_bars:
             self.schedule += tar
         self.schedule = sorted(self.schedule, 
@@ -198,21 +225,21 @@ class Chart:
     def __sec2beat(self, s):
         assert s >= 0, "请使用正秒数！"
         beat, bpm, time = self.stamp["beat"], self.stamp["bpm"], self.stamp["time"]
-        if s > time[-1]: 
+        if s >= time[-1]: 
             w.warn("超出乐曲长度！")
             return beat[-1] + (s - time[-1]) / 60. * bpm[-1]
         for tar in zip(beat, bpm, time):
-            if tar[2] > s:
+            if tar[2] >= s:
                 return tar[0] - (tar[2] - s) /60. * tar[1]
     
     def __beat2sec(self, b):
         assert b >= 0, "请使用正拍数！"
         beat, bpm, time = self.stamp["beat"], self.stamp["bpm"], self.stamp["time"]
-        if b > beat[-1]: 
+        if b >= beat[-1]: 
             w.warn("超出乐曲长度！")
             return time[-1] + (b - beat[-1]) * 60. / bpm[-1]
         for tar in zip(beat, bpm, time):
-            if tar[0] > b:
+            if tar[0] >= b:
                 return tar[2] - (tar[0] - b) *60. / tar[1]
         
 def get_charts(diff = None, path = "谱面", process = True):
