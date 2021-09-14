@@ -7,7 +7,6 @@ from os.path import dirname
 from scipy.interpolate import interp1d
 from numpy import array
 import logging
-import warnings as w
 import datetime
 
 get_now_time = lambda: datetime.datetime.strftime(datetime.datetime.now(), "%X")
@@ -60,18 +59,38 @@ class LayerView():
         return layer
 
 class LayerGroupView(LayerView):
-    def __init__(self, group: list = []):
+    def __init__(self, group: list = [],cache = True):
         for layer_view in group:
             assert isinstance(layer_view, LayerView)
         super().__init__()
         self.layer_group = group
+        self.view_cache = []
 
         for layer_view in group:
             self.ocp_lines += layer_view.ocp_lines
         self.ocp_lines = list(set(self.ocp_lines))
         self.ocp_lines = sorted(self.ocp_lines)
+        
+        if cache: self.process_cache()
+    
+    def process_cache(self, skin: ViewSkin = default_skin):
+        if self.view_cache == []:
+            layer = self.view_layer(skin)
+            for l in self.ocp_lines:
+                line_cache = ""
+                for p in range((std_lane_width + 1) * 7 + 1):
+                    super_char = layer((l, p))
+                    line_cache += "#" if type(super_char) == type(None) else super_char
+                self.view_cache.append(line_cache)
     
     def view_layer(self, skin: ViewSkin = default_skin):
+        if len(self.view_cache) > 0:
+            def cache_layer(idx):
+                l, p = idx
+                if l in self.ocp_lines:
+                    i = self.ocp_lines.index(l)
+                    return self.view_cache[i][p]
+            return cache_layer
         def layer(idx):
             l, _ = idx
             view = None
@@ -102,16 +121,16 @@ class SingleView(Single, LayerView):
         self.hand = getattr(single, "hand", None)
         self.ocp_lines = [self.line]
         if type(hold_rls) == type(None):
-            if type(single) == Single:
-                self.view_idx = "Single"
-            elif type(single) == Flick:
+            if type(single) == Flick:
                 self.view_idx = "Flick"
+            elif type(single) == Single:
+                self.view_idx = "Single"
             else:
                 self.view_idx = "Hold_node"
         else:
             assert type(single) != slide
             if hold_rls:
-                self.view_idx = "Hold_release" if type(single) == Single else "Hold_flick"
+                self.view_idx = "Hold_flick" if type(single) == Flick else "Hold_release"
             else: 
                 assert type(single) == Single
                 self.view_idx = "Hold_touch"
@@ -170,7 +189,7 @@ class DirectView(Direct, LayerView):
 
 class SingleSeireView(LayerGroupView):
     def __init__(self, group: list = []):
-        super().__init__(group = group)
+        super().__init__(group = group, cache = False)
         self.ocp_lines = []
         for single in group:
             assert isinstance(single, SingleView)
@@ -197,14 +216,14 @@ class LongBgView(LayerView):
         self.b2l = self.get_l_b_func()
     
     def get_l_b_func(self):
-        return lambda b : (b - self.touch.beat) / (self.release.beat - self.touch.beat) * (self.release.lane - self.touch.lane) + self.touch.lane
+        return lambda b : (b - self.touch.beat) / (self.release.beat - self.touch.beat) * (self.release.lane - self.touch.lane) + float(self.touch.lane)
     
     def line2lane(self, line):
         lane = self.b2l(self.l2b(line))
         if lane < 0.:
-            return 0
+            return 0.
         elif lane > 6.:
-            return 6
+            return 6.
         else:
             return lane
     
@@ -214,7 +233,7 @@ class LongBgView(LayerView):
         def layer(idx):
             l, p = idx
             try:
-                node_range = line2range(l)
+                node_range = line2range(float(l))
                 if node_range[0] <= p and p < node_range[1]:
                     return view[p - node_range[0]]
             except:
@@ -295,8 +314,6 @@ class LineView(LayerGroupView):
         self.simo = simo
         self.bg = ClearChartView(line) if type(bg) == type(None) else bg
         self.__verify()
-
-        self.view_cache = ""
         self.__construct()
     
     def __verify(self):
@@ -320,22 +337,9 @@ class LineView(LayerGroupView):
         if not type(self.simo) == type(None):
             group.append(self.simo)
         group.append(self.bg)
-        super().__init__(group = group)
-        self.__process_cache()
-    
-    def __process_cache(self, skin: ViewSkin = default_skin):
-        if self.view_cache == "":
-            super_view = super().view_layer(skin = skin)
-            for p in range((std_lane_width + 1) * 7 + 1):
-                super_char = super_view((self.line, p))
-                self.view_cache += "#" if type(super_char) == type(None) else super_char
-    
-    def view_layer(self, _: ViewSkin = default_skin):
-        def layer_cache(idx):
-            l, p = idx
-            if l == self.line:
-                return self.view_cache[p]
-        return layer_cache
+        super().__init__(group = group, cache = False)
+        self.ocp_lines = [self.line]
+        self.process_cache()
 
 class ChartView(LayerGroupView):
     def __init__(self, chart: Chart, bps = None, curve_method = "cubic"):
@@ -343,13 +347,16 @@ class ChartView(LayerGroupView):
         self.method = curve_method
 
         self.set_lpb(bps)
-        w.warn("谱面初始化完成！")
+        logging.info("谱面初始化完成！")
         self.process()
 
         self.line_views = []
+        self.single_views = []
+        self.direct_views = []
+        self.hold_views = []
         for l in range(self.num_line):
             if l % 1000 == 0 or l == self.num_line - 1:
-                w.warn("%i/%i行构建完成"%(l, self.num_line))
+                logging.info("%i/%i行构建完成"%(l, self.num_line))
             self.line_views.append(self.get_line_view(l))
 
     def set_lpb(self, bps):
@@ -377,7 +384,7 @@ class ChartView(LayerGroupView):
 
     def set_trans(self):
         self.b2l = lambda beat: 1. * beat * self.lpb
-        self.l2b = lambda line: 1. * line // self.lpb
+        self.l2b = lambda line: 1. * line / self.lpb
     
     def process(self):
         for single in self.chart.keys["Single"] + self.chart.keys["Flick"]:
@@ -385,30 +392,30 @@ class ChartView(LayerGroupView):
             l = single_view.ocp_lines[0]
             assert len(self.line_repo[l]["touch"]) < 2, "%i行按键过多"%(l)
             self.line_repo[l]["touch"].append(single_view)
-        w.warn("单键与划键加载完成！")
+        logging.info("单键与划键加载完成！")
         
         for direct in self.chart.keys["Direct"]:
             direct_view = DirectView(direct, self.b2l)
             l = direct_view.ocp_lines[0]
             assert len(self.line_repo[l]["touch"]) < 2, "%i行按键过多"%(l)
             self.line_repo[l]["touch"].append(direct_view)
-        w.warn("定向划键加载完成！")
+        logging.info("定向划键加载完成！")
         
         for hold in self.chart.keys["Hold"]:
             hold_view = HoldView(hold, self.b2l, self.l2b, self.method)
             for l in hold_view.ocp_lines:
                 assert len(self.line_repo[l]["touch"]) < 2, "%i行按键过多"%(l)
                 self.line_repo[l]["touch"].append(hold_view)
-        w.warn("长键加载完成！")
+        logging.info("长键加载完成！")
         
         for simo in self.chart.simo:
             simo_line = SimoBgView(simo, self.b2l)
             self.line_repo[simo_line.ocp_lines[0]]["simo"] = simo_line
-        w.warn("同时线加载完成！")
+        logging.info("同时线加载完成！")
         
         self.bg_chart = ClearChartView(self.num_line)
         self.bg_char = " "
-        w.warn("谱面背景加载完成！")
+        logging.info("谱面背景加载完成！")
     
     def get_line_view(self, line):
         return LineView(line, self.line_repo[line]["touch"], self.line_repo[line]["simo"], self.bg_chart)
