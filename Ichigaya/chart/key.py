@@ -36,8 +36,8 @@ class Single(Note):
 
 class Flick(Single):
     def __init__(self, json = None, beat = 0, lane = 0) -> None:
-        super().__init__(beat = beat, lane = lane, json = json)
         self.dir = None
+        super().__init__(beat = beat, lane = lane, json = json)
 
 class Direct(Flick):
     def __init__(self, json = None, 

@@ -8,16 +8,16 @@ from scipy.interpolate import interp1d
 from numpy import array
 import logging
 import warnings as w
+import datetime
 
-from Ichigaya import chart
-
+get_now_time = lambda: datetime.datetime.strftime(datetime.datetime.now(), "%X")
 current_path = dirname(__file__)
 std_lane_width = 15
 l2i = lambda lane: int(1. + (std_lane_width + 1.) * lane)
 lane_range = lambda lane: (l2i(lane), l2i(lane) + std_lane_width)
 
 class ViewSkin():
-    key_names = ["size"], ["single", "Flick", "Hold_touch", "Hold_release", "Hold_flick", "Hold_body", "Hold_node", "Left_1", "Right_1"], ["Left_2", "Right_2"], ["Left_3", "Right_3"], ["Simo_link"]
+    key_names = ["size"], ["Single", "Flick", "Hold_touch", "Hold_release", "Hold_flick", "Hold_body", "Hold_node", "Left_1", "Right_1"], ["Left_2", "Right_2"], ["Left_3", "Right_3"], ["Simo_link"]
     def __init__(self, type = "classic") -> None:
         self.type = type
         self.path = current_path + "\\html_chart_skin\\" + self.type + ".json"
@@ -67,9 +67,8 @@ class LayerGroupView(LayerView):
         self.layer_group = group
 
         for layer_view in group:
-            for line in layer_view.ocp_lines:
-                if not line in self.ocp_lines:
-                    self.ocp_lines.append(line)
+            self.ocp_lines += layer_view.ocp_lines
+        self.ocp_lines = list(set(self.ocp_lines))
         self.ocp_lines = sorted(self.ocp_lines)
     
     def view_layer(self, skin: ViewSkin = default_skin):
@@ -139,14 +138,14 @@ class SingleView(Single, LayerView):
 
 class DirectView(Direct, LayerView):
     def __init__(self, direct, b2l) -> None:
-        Direct.__init__(self, beat = direct.beat, lane = direct.lane, dir= direct.dir, len = direct.len)
+        Direct.__init__(self, beat = direct.beat, lane = direct.lane, dir = direct.dir, len = direct.len)
         self.line = int(b2l(direct.beat))
         self.hand = direct.hand
         self.ocp_lines = [self.line]
-        self.view_idx = self.dir + "_" + str(self.len + 1)
+        self.view_idx = self.dir + "_" + str(self.len)
     
     def get_view(self, skin: ViewSkin = default_skin):
-        org_view = skin()[self.view_idx]
+        view = skin()[self.view_idx]
         radius = (std_lane_width - 1) // 2
         if self.dir == "Left":
             radius = - radius - 1
@@ -155,13 +154,13 @@ class DirectView(Direct, LayerView):
                 label = "R"
             else:
                 label = "L"
-            view = org_view[:radius] + label + org_view[radius + 1:]
+            view = view[:radius] + label + view[radius + 1:]
         return view
     
     def view_layer(self, skin: ViewSkin = default_skin):
         key_range = lane_range(self.lane)
         if self.len > 1:
-            key_range[1] += (std_lane_width + 1) * (self.len - 1)
+            key_range = key_range[0], key_range[1] + (std_lane_width + 1) * (self.len - 1)
         view = self.get_view(skin)
         def layer(idx):
             _, p = idx
@@ -192,7 +191,7 @@ class LongBgView(LayerView):
         self.touch = touch
         self.release = release
         self.l2b = l2b
-        self.ocp_lines = [l for l in range(
+        self.ocp_lines = [int(l) for l in range(
             int(b2l(touch.beat)), 
             int(b2l(release.beat)))]
         self.b2l = self.get_l_b_func()
@@ -214,9 +213,12 @@ class LongBgView(LayerView):
         view = skin()["Hold_body"]
         def layer(idx):
             l, p = idx
-            node_range = line2range(l)
-            if node_range[0] <= p and p < node_range[1]:
-                return view[p - node_range[0]]
+            try:
+                node_range = line2range(l)
+                if node_range[0] <= p and p < node_range[1]:
+                    return view[p - node_range[0]]
+            except:
+                return None
         return layer
 
 class SlideBgView(LongBgView):
@@ -293,6 +295,8 @@ class LineView(LayerGroupView):
         self.simo = simo
         self.bg = ClearChartView(line) if type(bg) == type(None) else bg
         self.__verify()
+
+        self.view_cache = ""
         self.__construct()
     
     def __verify(self):
@@ -301,8 +305,10 @@ class LineView(LayerGroupView):
         assert type(self.simo) in [SimoBgView, type(None)], "同时线图层对象类型为%s，应为%s"%(str(type(self.simo)), str(SimoBgView))
         assert type(self.bg) == ClearChartView, "背景图层对象类型为%s，应为%s"%(str(type(self.bg)), str(ClearChartView))
 
+        assert len(self.touches) <= 2, "一行内最多有2个键对象，当前有%i"%(len(self.touches))
+        
         if type(self.simo) == SimoBgView:
-            assert len(self.touches) == 2, "仅在有%i各交互对象时可以设置同时线，当前有%i个对象"%(2, len(self.touches))
+            assert len(self.touches) == 2, "仅在有%i个交互对象时可以设置同时线，当前有%i个对象"%(2, len(self.touches))
         
         for obj in self.touches + [self.simo] if not type(self.simo) == type(None) else self.touches:
             assert self.line in obj.ocp_lines, "当前图层为第%i行可视化，但对象包含%s行"%(self.line, str(obj.ocp_lines))
@@ -315,6 +321,21 @@ class LineView(LayerGroupView):
             group.append(self.simo)
         group.append(self.bg)
         super().__init__(group = group)
+        self.__process_cache()
+    
+    def __process_cache(self, skin: ViewSkin = default_skin):
+        if self.view_cache == "":
+            super_view = super().view_layer(skin = skin)
+            for p in range((std_lane_width + 1) * 7 + 1):
+                super_char = super_view((self.line, p))
+                self.view_cache += "#" if type(super_char) == type(None) else super_char
+    
+    def view_layer(self, _: ViewSkin = default_skin):
+        def layer_cache(idx):
+            l, p = idx
+            if l == self.line:
+                return self.view_cache[p]
+        return layer_cache
 
 class ChartView(LayerGroupView):
     def __init__(self, chart: Chart, bps = None, curve_method = "cubic"):
@@ -327,7 +348,7 @@ class ChartView(LayerGroupView):
 
         self.line_views = []
         for l in range(self.num_line):
-            if l % 100 == 0 or l == self.num_line - 1:
+            if l % 1000 == 0 or l == self.num_line - 1:
                 w.warn("%i/%i行构建完成"%(l, self.num_line))
             self.line_views.append(self.get_line_view(l))
 
@@ -343,6 +364,9 @@ class ChartView(LayerGroupView):
                 self.lpb = 32
         else: 
             self.lpb = 64 // bps
+        
+        assert self.chart.get_min_retouch()[0][0] * self.lpb >= 1, "谱面按键过于密集，无法可视化"
+
         self.set_trans()
         self.num_line = int(self.lpb * self.chart.get_len()) + 1
         
@@ -358,17 +382,22 @@ class ChartView(LayerGroupView):
     def process(self):
         for single in self.chart.keys["Single"] + self.chart.keys["Flick"]:
             single_view = SingleView(single, self.b2l)
-            self.line_repo[single_view.ocp_lines[0]]["touch"].append(single_view)
+            l = single_view.ocp_lines[0]
+            assert len(self.line_repo[l]["touch"]) < 2, "%i行按键过多"%(l)
+            self.line_repo[l]["touch"].append(single_view)
         w.warn("单键与划键加载完成！")
         
         for direct in self.chart.keys["Direct"]:
             direct_view = DirectView(direct, self.b2l)
-            self.line_repo[direct_view.ocp_lines[0]]["touch"].append(direct_view)
+            l = direct_view.ocp_lines[0]
+            assert len(self.line_repo[l]["touch"]) < 2, "%i行按键过多"%(l)
+            self.line_repo[l]["touch"].append(direct_view)
         w.warn("定向划键加载完成！")
         
         for hold in self.chart.keys["Hold"]:
             hold_view = HoldView(hold, self.b2l, self.l2b, self.method)
             for l in hold_view.ocp_lines:
+                assert len(self.line_repo[l]["touch"]) < 2, "%i行按键过多"%(l)
                 self.line_repo[l]["touch"].append(hold_view)
         w.warn("长键加载完成！")
         
@@ -401,6 +430,6 @@ class ChartView(LayerGroupView):
                 if type(rep_char) == type(None) or rep_char == "#":
                     line_str += self.bg_char
                 else:
-                    line_str = rep_char
+                    line_str += rep_char
             text.append(line_str)
         return text
