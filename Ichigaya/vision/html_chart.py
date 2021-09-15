@@ -1,5 +1,5 @@
+from types import MethodType
 from scipy.interpolate.interpolate import interp1d
-from Ichigaya.chart import key
 from ..chart import Single, Flick, Hold, Direct, Simo, Chart, slide
 import json
 import codecs
@@ -358,6 +358,14 @@ class ChartView(LayerGroupView):
             if l % 1000 == 0 or l == self.num_line - 1:
                 logging.info("%i/%i行构建完成"%(l, self.num_line))
             self.line_views.append(self.get_line_view(l))
+    
+    def copy(self, view):
+        assert isinstance(view, ChartView)
+        for attr in dir(view):
+            if attr[0] == "_": continue
+            value = view.__getattribute__(attr)
+            if type(value) == MethodType:continue
+            self.__setattr__(attr, value)
 
     def set_lpb(self, bps):
         assert bps in [1, 2, 4, None], "每秒近似拍数须为1、2、4，输入的%s不合法"%(str(bps))

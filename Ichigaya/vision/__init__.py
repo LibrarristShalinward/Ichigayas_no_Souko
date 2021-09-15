@@ -1,2 +1,3 @@
 from .md_chart import MDChart
-from .html_chart import ChartView, ClearChartView, SingleView, HoldView
+from .html_chart import ChartView
+from .html_viewer import space_trans, StaticHTMLChart
