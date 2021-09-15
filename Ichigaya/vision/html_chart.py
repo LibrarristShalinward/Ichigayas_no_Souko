@@ -375,9 +375,10 @@ class ChartView(LayerGroupView):
         assert self.chart.get_min_retouch()[0][0] * self.lpb >= 1, "谱面按键过于密集，无法可视化"
 
         self.set_trans()
-        self.num_line = int(self.lpb * self.chart.get_len()) + 1
+        self.num_line = int(self.lpb * (self.chart.get_len() + 1))
         
         self.line_repo = []
+        self.line_time_stamp = [ self.chart.b_s_trans(self.l2b(float(l))) for l in range(self.num_line)]
         for _ in range(self.num_line): self.line_repo.append({
             "touch": [], 
             "simo": None})
