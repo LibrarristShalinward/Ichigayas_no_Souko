@@ -7,7 +7,7 @@ from ..utils import id_name_trans
 
 def space_trans(string):
     if type(string) == str:
-        string = re.sub(" ", "&nbsp;" * 2, string)
+        string = re.sub(" ", "&nbsp;", string)
     elif type(string) == list:
         for i in range(len(string)):
             string[i] = space_trans(string[i])
@@ -47,8 +47,7 @@ class HTMLPage():
     
     def export(self, path):
         self.set_export(path)
-        export_text = self.text[0] + "<div><center>" + self.text[1] + self.text[2] + "</center></div><br><font size = \"3\"><div><center>" + self.text[3] + "</center></div></font>"
-        export_text = space_trans(export_text)
+        export_text = self.text[0] + "<div><center>" + space_trans(self.text[1]) + space_trans(self.text[2]) + "</center></div><font size=\"1.5\", face=\"Courier\"><div><center>" + space_trans(self.text[3]) + "</center></div></font>"
         with open(self.__export_path, "w", encoding = "UTF-8") as f:
             f.writelines(export_text)
     
@@ -87,9 +86,13 @@ class StaticHTMLChart(ChartView):
             "难度：%s"%(self.chart.get()[1]), 
             "速度：%i"%(int(self.chart.bpm)), 
             "时长：%is"%(int(self.line_time_stamp[-1])), 
-            "物料量：%i"%(self.chart.amount), 
+            "物料量：%i+%i+%i+%i"%(
+                len(self.chart.keys["Single"]), 
+                len(self.chart.keys["Flick"]), 
+                len(self.chart.keys["Hold"]), 
+                len(self.chart.keys["Direct"])), 
             "最大Combo：%i"%(self.chart.max_combo)))
-        html.set_chart(self.get_line())
+        html.set_chart([str(i + 1).zfill(5) + line for i, line in enumerate(self.get_line())][::-1])
         self.__html = html
     
     def export(self, path = None):
