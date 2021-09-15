@@ -1,4 +1,3 @@
-from datetime import time
 import re
 from .html_chart import ChartView
 from os import system as cmd
@@ -8,7 +7,7 @@ from ..utils import id_name_trans
 
 def space_trans(string):
     if type(string) == str:
-        string = re.sub(" ", "&nbsp;", string)
+        string = re.sub(" ", "&nbsp;" * 2, string)
     elif type(string) == list:
         for i in range(len(string)):
             string[i] = space_trans(string[i])
@@ -25,14 +24,15 @@ class HTMLPage():
         self.set_title(title)
         self.set_ant(ant)
         self.set_chart(chart)
+        self.__export_path = None
 
     def process_text(self, process_list = None):
         if type(process_list) == type(None):
             return process_list("rtac")
         if "r" in process_list:
-            self.text[0] = "" if self.__refresh_frequency else"<meta http-equiv=\"refresh\" content=\"%f\">" %(1. / self.__refresh_frequency)
+            self.text[0] = "<meta http-equiv=\"refresh\" content=\"%f\">" %(1. / self.__refresh_frequency) if self.__refresh_frequency else ""
         if "t" in process_list:
-            self.text[1] = "" if self.__title else "<h1>%s</h1>"%(self.__title)
+            self.text[1] = "<h1>%s</h1>"%(self.__title) if self.__title else ""
         if "a" in process_list:
             self.text[2] = ""
             if self.__annotation:
@@ -42,14 +42,14 @@ class HTMLPage():
         if "c" in process_list:
             self.text[3] = ""
             if self.__chart:
-                for ant in self.__chart:
-                    self.text[2] += ant + "<br>"
+                for line in self.__chart:
+                    self.text[3] += line + "<br>"
     
     def export(self, path):
         self.set_export(path)
-        export_text = self.text[0] + "<div><center>" + self.text[1] + "</center>" + self.text[2] + "</div><br><font size = \"3\"><div><center>" + self.text[3] + "</center></div></font>"
+        export_text = self.text[0] + "<div><center>" + self.text[1] + self.text[2] + "</center></div><br><font size = \"3\"><div><center>" + self.text[3] + "</center></div></font>"
         export_text = space_trans(export_text)
-        with open(self.__export_path, "r", decoder = "UTF-8") as f:
+        with open(self.__export_path, "w", encoding = "UTF-8") as f:
             f.writelines(export_text)
     
     def view(self):
