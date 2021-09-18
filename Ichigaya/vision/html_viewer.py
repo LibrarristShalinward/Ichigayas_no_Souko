@@ -4,6 +4,7 @@ from os import system as cmd
 import _thread
 from ..utils import id_name_trans
 from time import time as t
+from warnings import warn as w
 
 
 def space_trans(string):
@@ -25,7 +26,7 @@ class HTMLPage():
         self.set_title(title)
         self.set_ant(ant)
         self.set_chart(chart)
-        self.__export_path = None
+        self._export_path = None
         self.full_text = lambda: self.text[0] + "<div><center>" + space_trans(self.text[1]) + space_trans(self.text[2]) + "</center></div><font size=\"1.5\", face=\"Courier\"><div><center>" + space_trans(self.text[3]) + "</center></div></font>"
 
     def process_text(self, process_list = None):
@@ -82,19 +83,17 @@ class TimeKeeper():
     def __init__(self, stamps, decay = 1.) -> None:
         self.__time_stamps = stamps
         self.__start_decay = decay
+        self.__i = 0
     
     def rein(self):
         st = t() + self.__start_decay
-        table = [stm + st for stm in self.__time_stamps]
-        def get():
-            for t in table:
-                yield t
-        self.__get_next_stamp = get
+        self.table = [stm + st for stm in self.__time_stamps]
     
     def __call__(self):
-        tar = self.__get_next_stamp
+        tar = self.table[self.__i]
+        self.__i += 1
         while t() < tar:
-            pass
+            continue
         
 
 
@@ -174,13 +173,18 @@ class DynamicHTMLChart(ChartView):
                 len(self.chart.keys["Hold"]), 
                 len(self.chart.keys["Direct"])), 
             "最大Combo：%i"%(self.chart.max_combo))
-        chart = [str(i + 1).zfill(5) + line for i, line in enumerate(self.get_line())][::-1]
+        chart = [str(i + 1).zfill(5) + line for i, line in enumerate(self.get_line())]
         frgs = []
-        for i in range(len(chart - sr) // lps):
-            frgs.append(chart[i * lps:i * lps + sr])
+        stamps = [.5]
+        for i in range((len(chart) - sr) // lps):
+            frgs.append(chart[i * lps:i * lps + sr][::-1])
+            try:
+                stamps.append(self.line_time_stamp[i * lps + sr])
+            except:
+                stamps.append(stamps[-1] * 2 - stamps[-2])
         
-        html = HTMLDynamic(rf, title, annotation, frgs, [.5] + self.line_time_stamp)
+        html = HTMLDynamic(rf, title, annotation, frgs, stamps)
         self.__html = html
     
-    def run(self):
-        self.__html.run()
+    def run(self, path = None):
+        self.__html.run(path)

@@ -431,8 +431,8 @@ class ChartView(LayerGroupView):
 
     def view_layer(self, skin: ViewSkin = default_skin):
         def layer(idx):
-            l, _ = idx
-            if l <= len(self.line_views):
+            l, p = idx
+            if l < len(self.line_views):
                 line_view = self.line_views[l]
                 return line_view.view_layer(skin)(idx)
             else:
