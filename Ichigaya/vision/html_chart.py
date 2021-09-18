@@ -432,14 +432,17 @@ class ChartView(LayerGroupView):
     def view_layer(self, skin: ViewSkin = default_skin):
         def layer(idx):
             l, _ = idx
-            line_view = self.line_views[l]
-            return line_view.view_layer(skin)(idx)
+            if l <= len(self.line_views):
+                line_view = self.line_views[l]
+                return line_view.view_layer(skin)(idx)
+            else:
+                return self.bg_chart.view_layer(skin)((0, p))
         return layer
     
     def get_line(self):
         layer = self.view_layer()
         text = []
-        for l in range(self.num_line):
+        for l in range(self.num_line + self.lpb):
             line_str = ""
             for p in range((std_lane_width + 1) * 7 + 1):
                 rep_char = layer((l, p))
