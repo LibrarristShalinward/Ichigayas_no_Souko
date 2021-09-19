@@ -61,6 +61,9 @@ class HTMLPage():
         self.__refresh_frequency = rf
         self.process_text("r")
     
+    def set_time(self, time):
+        self.text[0] = "<meta http-equiv=\"refresh\" content=\"%f\">" %(time) if time else self.text[0]
+    
     def set_title(self, title):
         self.__title = title
         self.process_text("t")
@@ -108,11 +111,13 @@ class HTMLDynamic(HTMLPage):
         self.__charts = charts
     
     def set_stamps(self, stamps):
-        self.clock = TimeKeeper(stamps)
+        self.__stamps = stamps
+        self.clock = TimeKeeper(self.__stamps)
     
     def pre_process(self):
         export_texts  = [self.full_text()]
-        for chart in self.__charts:
+        for i, chart in enumerate(self.__charts):
+            self.set_time(self.__stamps[i + 1] - self.__stamps[i])
             self.set_chart(chart)
             export_texts.append(self.full_text())
         self.export_texts = export_texts
