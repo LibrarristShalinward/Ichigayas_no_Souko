@@ -1,4 +1,3 @@
-from Ichigaya import chart
 import re
 from .html_chart import ChartView
 from os import system as cmd
@@ -28,7 +27,7 @@ class HTMLPage():
         self.set_ant(ant)
         self.set_chart(chart)
         self._export_path = None
-        self.full_text = lambda: self.text[0] + "<div><center>" + space_trans(self.text[1]) + space_trans(self.text[2]) + "</center></div><font size=\"1.5\", face=\"Courier\"><div><center>" + space_trans(self.text[3]) + "</center></div></font>"
+        self.full_text = lambda: self.text[0] + "<div><center>" + space_trans(self.text[1]) + space_trans(self.text[2]) + "</center></div><font size=\"1.5\", face=\"Courier\"><div><center>" + space_trans(self.text[3]) + "</center></div>"
 
     def process_text(self, process_list = None):
         if type(process_list) == type(None):
@@ -49,9 +48,9 @@ class HTMLPage():
                 for line in self.__chart:
                     self.text[3] += line + "<br>"
     
-    def export(self, path):
+    def export(self, path, text = None):
         self.set_export(path)
-        export_text = self.full_text()
+        export_text = text if text else self.full_text()
         with open(self._export_path, "w", encoding = "UTF-8") as f:
             f.writelines(export_text)
     
@@ -136,30 +135,61 @@ class HTMLDynamic(HTMLPage):
 
 
 
-class HTMLJavaDynamic(HTMLDynamic):
-    def set_stamps(self, stamps):
-        self.__stamps = stamps
+class HTMLJavaDynamic(HTMLPage):
+    def __init__(self, title, ant, chart, stamps, lps = 2, sr = 64) -> None:
+        super().__init__(rf = None, title = title, ant = ant, chart = None)
+        self.set_chart(chart)
+        self.set_window(stamps, lps, sr)
+
+        self.full_text = lambda: self.text[0] + "<div><center>" + space_trans(self.text[1]) + space_trans(self.text[2]) + "</center></div><font size=\"1.5\", face=\"Courier\"><div><center>" + self.text[3] + "</center></div>"
     
-    def pre_process(self):
-        hidden_charts = "<center>"
-        for i, chart in enumerate(self.__charts):
-            hidden_charts += "<div id = \"" + str(i) + "\" style=\"display: none;\">"
-            for line in chart:
-                hidden_charts += space_trans(line) + "<br>"
-            hidden_charts += "</div>"
-        hidden_charts += "</center>"
-
-        time_keeper = "<script>var counter = 0; function hide_prev() { var div = document.getElementById(counter.toString()); div.style.display = 'none'; counter++; } function show_next() { div = document.getElementById(counter.toString()); div.style.display = ''; } "
-        time_keeper += "setTimeout(\"show_next()\", " + str(self.__stamps[0] * 1000) + ");"
-        for time in self.__stamps[1:]:
-            time_keeper += "setTimeout(\"hide_prev()\", " + str(time * 1000) + ");"
-            time_keeper += "setTimeout(\"show_next()\", " + str(time * 1000) + ");"
-        time_keeper += "</script>"
-
-        self.text[3] = hidden_charts + time_keeper
+    def process_text(self, process_list=None):
+        if "c" in process_list:
+            self.text[3] = ""
+            if self.__chart:
+                chart_len = len(self.__chart)
+                for i, line in enumerate(self.__chart):
+                    self.text[3] += "<p id = \"" + str(chart_len - i - 1) + "\" style=\"display: none;\">" + space_trans(line) + "<br></p>"
+        else:
+            super().process_text(process_list = process_list)
     
+    def set_chart(self, chart):
+        self.__chart = chart
+        self.process_text("c")
+    
+    def set_window(self, stamps, lps, sr):
+        self.__window = ""
+        script = ["<script>", 
+            "var i; ", 
+            "var sr = " + str(sr) + "; ", 
+            "var lps = " + str(lps) + "; ", 
+            "var stamps = " + str([time * 1000 for time in stamps]) + ";", 
+            "var bottom = 0; ", 
+            "var top = sr; ", 
+            "function next(){ ", 
+            "line = document.getElementById(bottom.toString()); ", 
+            "line.style.display = 'none'; ", 
+            "bottom++; ", 
+            "line = document.getElementById(top.toString()); ", 
+            "line.style.display = ''; ", 
+            "top++;} ", 
+            "function step(){ ", 
+            "for(i = 0; i < sr; i++){next();}} ", 
+            "stamps.forEach(function(time, bl1, bl2){", 
+            "setTimeout(\"step()\", time);}); ", 
+            "window.onload = function(){ ", 
+            "for(i = 0; i < lps: i++){ ", 
+            "line = document.getElementById(i.toString()); ", 
+            "line.style.display = '';}} ", 
+            "</script>"]
+        for line in script:
+            self.__window += line
+    
+    def export(self, path):
+        return super().export(path, 
+            text = self.full_text() + self.__window)
 
-        
+
 
 class StaticHTMLChart(ChartView):
     def __init__(self, view: ChartView) -> None:
@@ -215,7 +245,7 @@ class DynamicHTMLChart(ChartView):
             except:
                 stamps.append(stamps[-1] * 2 - stamps[-2])
         
-        html = HTMLJavaDynamic(rf, title, annotation, frgs, stamps) if js else HTMLDynamic(rf, title, annotation, frgs, stamps)
+        html = HTMLJavaDynamic(title, annotation, chart, stamps, lps, sr) if js else HTMLDynamic(rf, title, annotation, frgs, stamps)
         self.__html = html
     
     def run(self, path = None):
