@@ -1,3 +1,4 @@
+from Ichigaya import chart
 import re
 from .html_chart import ChartView
 from os import system as cmd
@@ -132,7 +133,32 @@ class HTMLDynamic(HTMLPage):
             with open(p, "w", encoding = "UTF-8") as f:
                 f.writelines(text)
             clock()
-            
+
+
+
+class HTMLJavaDynamic(HTMLDynamic):
+    def set_stamps(self, stamps):
+        self.__stamps = stamps
+    
+    def pre_process(self):
+        hidden_charts = "<center>"
+        for i, chart in enumerate(self.__charts):
+            hidden_charts += "<div id = \"" + str(i) + "\" style=\"display: none;\">"
+            for line in chart:
+                hidden_charts += space_trans(line) + "<br>"
+            hidden_charts += "</div>"
+        hidden_charts += "</center>"
+
+        time_keeper = "<script>var counter = 0; function hide_prev() { var div = document.getElementById(counter.toString()); div.style.display = 'none'; counter++; } function show_next() { div = document.getElementById(counter.toString()); div.style.display = ''; } "
+        time_keeper += "setTimeout(\"show_next()\", " + str(self.__stamps[0] * 1000) + ");"
+        for time in self.__stamps[1:]:
+            time_keeper += "setTimeout(\"hide_prev()\", " + str(time * 1000) + ");"
+            time_keeper += "setTimeout(\"show_next()\", " + str(time * 1000) + ");"
+        time_keeper += "</script>"
+
+        self.text[3] = hidden_charts + time_keeper
+    
+
         
 
 class StaticHTMLChart(ChartView):
@@ -163,8 +189,9 @@ class StaticHTMLChart(ChartView):
 
 
 class DynamicHTMLChart(ChartView):
-    def __init__(self, view: ChartView, lps = 2, rf = 60, sr = 64) -> None:
+    def __init__(self, view: ChartView, lps = 2, rf = 60, sr = 64, js = True) -> None:
         self.copy(view)
+        self.js = js
 
         title = id_name_trans(self.chart.get()[0])
         annotation = (
@@ -188,8 +215,17 @@ class DynamicHTMLChart(ChartView):
             except:
                 stamps.append(stamps[-1] * 2 - stamps[-2])
         
-        html = HTMLDynamic(rf, title, annotation, frgs, stamps)
+        html = HTMLJavaDynamic(rf, title, annotation, frgs, stamps) if js else HTMLDynamic(rf, title, annotation, frgs, stamps)
         self.__html = html
     
     def run(self, path = None):
+        assert not self.js
         self.__html.run(path)
+    
+    def export(self, path = None):
+        assert self.js
+        self.__html.export(path)
+    
+    def view(self):
+        assert self.js
+        self.__html.view()
