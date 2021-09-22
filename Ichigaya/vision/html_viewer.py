@@ -147,9 +147,8 @@ class HTMLJavaDynamic(HTMLPage):
         if "c" in process_list:
             self.text[3] = ""
             if self.__chart:
-                chart_len = len(self.__chart)
-                for i, line in enumerate(self.__chart):
-                    self.text[3] += "<p id = \"" + str(chart_len - i - 1) + "\" style=\"display: none;\">" + space_trans(line) + "<br></p>"
+                for i in range(64):
+                    self.text[3] += "<p id = \"" + str(63 - i) + "\" style=\"display: inline;\"></p><p style=\"display: inline;\"><br></p>"
         else:
             super().process_text(process_list = process_list)
     
@@ -163,24 +162,23 @@ class HTMLJavaDynamic(HTMLPage):
             "var i; ", 
             "var sr = " + str(sr) + "; ", 
             "var lps = " + str(lps) + "; ", 
-            "var stamps = " + str([time * 1000 for time in stamps]) + ";", 
-            "var bottom = 0; ", 
             "var top = sr; ", 
+            "var stamps = " + str([time * 1000 for time in stamps]) + ";", 
+            "var chart = " + str(space_trans(self.__chart)[::-1]) + ";", 
+            "var lines = Array(sr)", 
+            "for(i = 0; i < sr; i++){", 
+            "lines[i] = document.getElementById(i.toString()); }"
             "function next(){ ", 
-            "line = document.getElementById(bottom.toString()); ", 
-            "line.style.display = 'none'; ", 
-            "bottom++; ", 
-            "line = document.getElementById(top.toString()); ", 
-            "line.style.display = ''; ", 
-            "top++;} ", 
-            "function step(){ ", 
-            "for(i = 0; i < sr; i++){next();}} ", 
+            "for(i = 0; i < sr - lps; i++){", 
+            "lines[i].innerHTML = lines[i + 2].innerHTML; }", 
+            "for(i = 0; i < lps; i++){", 
+            "lines[sr - lps + i]innerHTML = chart[i]; ", 
+            "sr++; }} "
             "stamps.forEach(function(time, bl1, bl2){", 
             "setTimeout(\"step()\", time);}); ", 
-            "window.onload = function(){ ", 
-            "for(i = 0; i < lps: i++){ ", 
-            "line = document.getElementById(i.toString()); ", 
-            "line.style.display = '';}} ", 
+            "window.onload = function(){", 
+            "for(i = 0; i < sr; i++){", 
+            "lines[i].innerHTML = chart[i];}} "
             "</script>"]
         for line in script:
             self.__window += line
