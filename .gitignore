@@ -1,2 +1,4 @@
 *.pyc
 *.ipynb
+*.html
+*.sh

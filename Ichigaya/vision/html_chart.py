@@ -1,5 +1,5 @@
+from types import MethodType
 from scipy.interpolate.interpolate import interp1d
-from Ichigaya.chart import key
 from ..chart import Single, Flick, Hold, Direct, Simo, Chart, slide
 import json
 import codecs
@@ -358,6 +358,14 @@ class ChartView(LayerGroupView):
             if l % 1000 == 0 or l == self.num_line - 1:
                 logging.info("%i/%i行构建完成"%(l, self.num_line))
             self.line_views.append(self.get_line_view(l))
+    
+    def copy(self, view):
+        assert isinstance(view, ChartView)
+        for attr in dir(view):
+            if attr[0] == "_": continue
+            value = view.__getattribute__(attr)
+            if type(value) == MethodType:continue
+            self.__setattr__(attr, value)
 
     def set_lpb(self, bps):
         assert bps in [1, 2, 4, None], "每秒近似拍数须为1、2、4，输入的%s不合法"%(str(bps))
@@ -375,9 +383,10 @@ class ChartView(LayerGroupView):
         assert self.chart.get_min_retouch()[0][0] * self.lpb >= 1, "谱面按键过于密集，无法可视化"
 
         self.set_trans()
-        self.num_line = int(self.lpb * self.chart.get_len()) + 1
+        self.num_line = int(self.lpb * (self.chart.get_len() + 1))
         
         self.line_repo = []
+        self.line_time_stamp = [ self.chart.b_s_trans(self.l2b(float(l))) for l in range(self.num_line)]
         for _ in range(self.num_line): self.line_repo.append({
             "touch": [], 
             "simo": None})
@@ -422,15 +431,18 @@ class ChartView(LayerGroupView):
 
     def view_layer(self, skin: ViewSkin = default_skin):
         def layer(idx):
-            l, _ = idx
-            line_view = self.line_views[l]
-            return line_view.view_layer(skin)(idx)
+            l, p = idx
+            if l < len(self.line_views):
+                line_view = self.line_views[l]
+                return line_view.view_layer(skin)(idx)
+            else:
+                return self.bg_chart.view_layer(skin)((0, p))
         return layer
     
     def get_line(self):
         layer = self.view_layer()
         text = []
-        for l in range(self.num_line):
+        for l in range(self.num_line + self.lpb):
             line_str = ""
             for p in range((std_lane_width + 1) * 7 + 1):
                 rep_char = layer((l, p))
