@@ -138,6 +138,7 @@ class HTMLDynamic(HTMLPage):
 class HTMLJavaDynamic(HTMLPage):
     def __init__(self, title, ant, chart, stamps, lps = 2, sr = 64) -> None:
         super().__init__(rf = None, title = title, ant = ant, chart = None)
+        self.__sr = sr
         self.set_chart(chart)
         self.set_window(stamps, lps, sr)
 
@@ -147,8 +148,8 @@ class HTMLJavaDynamic(HTMLPage):
         if "c" in process_list:
             self.text[3] = ""
             if self.__chart:
-                for i in range(64):
-                    self.text[3] += "<p id = \"" + str(63 - i) + "\" style=\"display: inline;\"></p><p style=\"display: inline;\"><br></p>"
+                for i in range(self.__sr):
+                    self.text[3] += "<p id = \"" + str(self.__sr - 1 - i) + "\" style=\"display: inline;\"></p><p style=\"display: inline;\"><br></p>"
         else:
             super().process_text(process_list = process_list)
     
@@ -162,23 +163,23 @@ class HTMLJavaDynamic(HTMLPage):
             "var i; ", 
             "var sr = " + str(sr) + "; ", 
             "var lps = " + str(lps) + "; ", 
-            "var top = sr; ", 
-            "var stamps = " + str([time * 1000 for time in stamps]) + ";", 
-            "var chart = " + str(space_trans(self.__chart)[::-1]) + ";", 
-            "var lines = Array(sr)", 
+            "var stamps = " + str([time * 1000 for time in stamps[1:]]) + ";", 
+            "var chart = " + str(space_trans(self.__chart)) + ";", 
+            "var lines = Array(sr); ", 
             "for(i = 0; i < sr; i++){", 
             "lines[i] = document.getElementById(i.toString()); }"
             "function next(){ ", 
+            "var top = parseInt(lines[sr - 1].innerHTML.slice(0, 5)); ", 
             "for(i = 0; i < sr - lps; i++){", 
-            "lines[i].innerHTML = lines[i + 2].innerHTML; }", 
+            "lines[i].innerHTML = lines[i + lps].innerHTML; }", 
             "for(i = 0; i < lps; i++){", 
-            "lines[sr - lps + i]innerHTML = chart[i]; ", 
-            "sr++; }} "
+            "lines[sr - lps + i].innerHTML = chart[top + i];}} ", 
             "stamps.forEach(function(time, bl1, bl2){", 
-            "setTimeout(\"step()\", time);}); ", 
+            "setTimeout(\"next()\", time);", 
+            "setTimeout(\"top += lps\", time);}); ", 
             "window.onload = function(){", 
             "for(i = 0; i < sr; i++){", 
-            "lines[i].innerHTML = chart[i];}} "
+            "lines[i].innerHTML = chart[i];}} ", 
             "</script>"]
         for line in script:
             self.__window += line
@@ -233,7 +234,9 @@ class DynamicHTMLChart(ChartView):
                 len(self.chart.keys["Hold"]), 
                 len(self.chart.keys["Direct"])), 
             "最大Combo：%i"%(self.chart.max_combo))
-        chart = [str(i + 1).zfill(5) + line for i, line in enumerate(self.get_line())]
+        chart = [str(i + 1).zfill(5) + line + 
+            "%.3f"%(self.chart.b_s_trans(self.l2b(i))) 
+            for i, line in enumerate(self.get_line())]
         frgs = []
         stamps = [.5]
         for i in range((len(chart) - sr) // lps):
