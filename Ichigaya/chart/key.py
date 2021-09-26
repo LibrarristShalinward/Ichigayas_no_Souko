@@ -26,13 +26,21 @@ class Note:
         self.beat = float(json["beat"])
         self.lane = float(json["lane"])
 
+class directionalNote(Note):
+    def __init__(self, json = None, beat = 0, lane = 0) -> None:
+        super().__init__(json = json, beat = beat, lane = lane)
+        self.hand = None
+    
+    def set_hand(self, hand = None):
+        if hand is not None and self.hand is not None:
+            assert hand == self.hand
+        else:
+            self.hand == hand
 
-
-class Single(Note):
+class Single(directionalNote):
     def __init__(self, json = None, beat = 0, lane = 0) -> None:
         super().__init__(beat=beat, lane=lane, json=json)
         self.lane = int(self.lane)
-        self.hand = None
 
 class Flick(Single):
     def __init__(self, json = None, beat = 0, lane = 0) -> None:
@@ -54,7 +62,7 @@ class Direct(Flick):
         self.len = json["width"]
 
 
-class slide(Note):
+class slide(directionalNote):
     def __init__(self, json = None, beat = 0, lane = 0, visible = True) -> None:
         super().__init__(beat=beat, lane=lane, json=json)
         if json == None:
@@ -87,6 +95,12 @@ class Hold:
         self.slides = []
         for obj in json["connections"][1:-1]:
             self.slides.append(slide(obj))
+    
+    def set_hand(self, hand = None):
+        self.touch.set_hand(hand)
+        for s in self.slides:
+            s.set_hand(hand)
+        self.release.set_hand(hand)
 
 class Simo():
     def __init__(self, obj1 = None , obj2 = None, beat = 0, lane = (0, 0)) -> None:
@@ -114,3 +128,7 @@ class Simo():
     
     def is_included(self, note):
         return self.is_obj1(note) or self.is_obj2(note)
+    
+    def set_hand(self):
+        self.obj1.set_hand("Left")
+        self.obj2.set_hand("Right")

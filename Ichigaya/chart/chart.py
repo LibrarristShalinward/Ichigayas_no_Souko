@@ -200,6 +200,13 @@ class Chart:
             key = lambda event: event[2] 
             if type(event) == tuple 
             else event.beat)
+    
+    def set_hand(self):
+        self.set_hand_simo()
+    
+    def set_hand_simo(self):
+        for simo in self.simo:
+            simo.set_hand()
 
     def get_points(self):
         singles = self.keys["Single"] + self.keys["Flick"] + self.keys["Direct"]
