@@ -211,10 +211,10 @@ class Chart:
     def get_points(self):
         singles = self.keys["Single"] + self.keys["Flick"] + self.keys["Direct"]
         for point in singles:
-            yield type(point), None, point.beat, point.lane
+            yield type(point), None, point.beat, point.lane, point
         for hold in self.keys["Hold"]:
-            yield key.Hold, True, hold.touch.beat, hold.touch.lane
-            yield key.Hold, False, hold.release.beat, hold.release.lane
+            yield key.Hold, True, hold.touch.beat, hold.touch.lane, hold
+            yield key.Hold, False, hold.release.beat, hold.release.lane, hold
     
     def get_point_list(self):
         return [point for point in self.get_points()]
