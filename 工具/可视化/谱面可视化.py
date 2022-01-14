@@ -9,14 +9,22 @@ main_path = "././"
 target_path = main_path + "谱面"
 parser = argparse.ArgumentParser("市ヶ谷家离线谱面模拟器交互终端")
 
-parser.add_argument("-I", "--ID")
-parser.add_argument("-d", "--diff", default = "expert")
-parser.add_argument("-c", "--curve", default = "linear")
-parser.add_argument("-f", "--falling_speed", default = None)
-parser.add_argument("-m", "--mode", default = "dynamic")
-parser.add_argument("-s", "--step", default = 2)
-parser.add_argument("-r", "--refresh_frequency", default = 60)
-parser.add_argument("-l", "--screen_range", default = 64)
+parser.add_argument("-I", "--ID", 
+    help = "歌曲编号或名称")
+parser.add_argument("-d", "--diff", default = "expert", 
+    help = "谱面难度，默认为Ex；输入格式为格式名小写全词，即easy/normal/hard/expert/special")
+parser.add_argument("-c", "--curve", default = "linear", 
+    help = "新版本绿条生成插值方式，默认为线性插值-linear；另可设为三次样条插值-cubic")
+parser.add_argument("-f", "--falling_speed", default = None, 
+    help = "谱面纵向延伸率，默认为2；可选值为1/2/4，单位为(*64行/秒)")
+parser.add_argument("-m", "--mode", default = "dynamic", 
+    help = "生成像素谱面模式，默认为动态谱面-d/dynamic；另有静态模式-s/static可选")
+parser.add_argument("-s", "--step", default = 2, 
+    help = "时间分辨率/每次刷新行数（仅支持动态谱面），默认为2；可选值为2/4/8")
+parser.add_argument("-r", "--refresh_frequency", default = 60, 
+    help = "刷新率（仅支持动态谱面），默认为60；可选值为10/30/60")
+parser.add_argument("-l", "--screen_range", default = 64, 
+    help = "屏幕显示行数（仅支持动态谱面），默认为64；可选值为16/32/64")
 parser.add_argument("-j", "--use_java", default = True)
 args = parser.parse_args()
 
