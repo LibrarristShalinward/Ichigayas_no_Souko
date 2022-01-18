@@ -1,0 +1,5 @@
+*.pyc
+*.ipynb
+*.sh
+*.stgs
+*.html
