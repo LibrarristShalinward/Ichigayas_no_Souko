@@ -6,6 +6,7 @@
 - 谱面下载（.json格式）（其实尝试用txt也是可以打开的）（前提是你看得懂）
 - 若干谱面排名，包括[谱面按键数排行](歌曲信息（查询用）\按键数排行.md)、[谱面最大Combo数排行](歌曲信息（查询用）\连击排行.md)、[歌曲速度排行](歌曲信息（查询用）\速度排行.md)等
 - 像素谱面模拟器
+- BanGDream Stage Simulator对接文件
 
 
 
@@ -21,6 +22,7 @@
 |21/9/21|完成了谱面动态可视化工具|
 |21/9/22|完成了谱面可视化交互|
 |22/1/13|集中更新了谱面|
+|22/1/18|更新了对BanGDream Stage Simulator的对接功能|
 
 </center>
 
@@ -68,4 +70,28 @@ src = "https://github.com/LibrarristShalinward/Ichigayas_no_Souko/附件/像素�
 ```
 >>  python 工具\可视化\谱面可视化.py -I 296
 >>  python 工具\可视化\谱面可视化.py -I TOMORROW
+```
+
+# BanGDream Stage Simulator
+
+由于仓库开发者水平有限，在此不提供标准的BanGDream谱面模拟器。取而代之地，我们提供了对仓库[**BanGDream Stage Simulator**](https://github.com/KCFindstr/BanGDreamStageSimulator)支持json谱面格式标准的文件转换功能。为了与本仓库下基于Bestdori标准的json谱面格式区别，在本仓库中，**BanGDream Stage Simulator**所支持的json谱面文件将被统一以`.stgs`扩展名命名。
+运行以下命令，即可获得已有谱面的`.stgs`谱面文件： 
+```
+>>  python 工具\可视化\谱面可视化.py -h
+    usage: BanGDream Stage Simulator谱面文件导出 [-h] [-d DIFF] [-p PATH] ID
+
+    positional arguments:
+    ID                    歌曲编号或名称
+
+    optional arguments:
+    -h, --help            show this help message and exit
+    -d DIFF, --diff DIFF  谱面难度，默认为Ex；输入格式为格式名小写全词，即easy/normal/hard/expert/special
+    -p PATH, --path PATH  导出地址与文件名，默认地址为主文件夹，文件名为[id]-[曲名]-[难度].stgs
+```
+
+命令范例
+
+```
+>>  python 工具\可视化\谱面可视化.py -I イントロダクション
+>>  python 工具\可视化\谱面可视化.py -I 359 -d special
 ```
