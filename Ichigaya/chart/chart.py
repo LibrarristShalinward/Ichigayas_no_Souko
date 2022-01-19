@@ -188,11 +188,12 @@ class Chart:
                     break
                 if point[2] == tar[i][2]:
                     self.simo.append(key.Simo(
-                        tar[i][:2], point[:2], 
+                        tar[i], point, 
                         point[2], (tar[i][3], point[3])))
                     pre_pro_bars[bar_idx].pop(i)
                     break
         
+        self.simo = sorted(self.simo, key = lambda simo: simo.beat)
         self.schedule = [] + self.simo
         for tar in pre_pro_bars:
             self.schedule += tar
@@ -211,10 +212,11 @@ class Chart:
     def get_points(self):
         singles = self.keys["Single"] + self.keys["Flick"] + self.keys["Direct"]
         for point in singles:
-            yield type(point), None, point.beat, point.lane, point
+            idx = self.keys["Single"].index(point) if type(point) == key.Single else self.keys["Flick"].index(point) if type(point) == key.Flick else self.keys["Direct"].index(point)
+            yield type(point), None, point.beat, point.lane, idx
         for hold in self.keys["Hold"]:
-            yield key.Hold, True, hold.touch.beat, hold.touch.lane, hold
-            yield key.Hold, False, hold.release.beat, hold.release.lane, hold
+            yield key.Hold, True, hold.touch.beat, hold.touch.lane, self.keys["Hold"].index(hold)
+            yield key.Hold, False, hold.release.beat, hold.release.lane, self.keys["Hold"].index(hold)
     
     def get_point_list(self):
         return [point for point in self.get_points()]
