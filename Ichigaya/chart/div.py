@@ -1,4 +1,4 @@
-from .key import Single, Flick, Direct, Hold
+from .key import Single, Flick, Direct, Hold, directionalNote
 
 
 def div_stateI(keys, simos): 
@@ -109,3 +109,77 @@ def div_stateI(keys, simos):
         "Flick": [f.hand for f in keys["Flick"]], 
         "Direct": [d.hand for d in keys["Direct"]], 
         "Hold": [h.touch.hand for h in keys["Hold"]]}
+
+
+
+
+
+def div_stateII(keys): 
+
+    fx = lambda b: (60 * b ** 2 - 1.75) * (- b ** 2 / 4 + 1) / (100 * b ** 4 + 1)
+    c_l = lambda b, l, h: min(max((fx(b if h else -b) - l), -1), 1)
+    c_b = lambda b: max(1 - b * 4 if b > 0 else 4 * b + 1, 0)
+    cost = lambda b, l, h: c_l(b, l, h) * c_b(b)
+
+
+
+    def single_cost(s, b, l, h = None): 
+        assert isinstance(s, directionalNote)
+        if h is None: 
+            assert s.hand is not None
+            h = s.hand
+        if abs(s.beat - b) > 1: 
+            return 0
+        return cost(b - s.beat, l - s.lane, h == "Left")
+
+    def hold_cost(h: Hold, b, l, hand = None): 
+        return single_cost(h.touch, b, l, hand) + single_cost(h.release, b, l, hand)
+    
+
+
+    rest_list = []
+    for t, l in keys.items(): 
+        for i, k in enumerate(l): 
+            if (k.hand if isinstance(k, directionalNote) else k.touch.hand) is None: 
+                rest_list.append([t, i, 0, 0, None, None])
+
+    for rinfo in rest_list: 
+        rnote = keys[rinfo[0]][rinfo[1]] 
+        rnote = rnote if isinstance(rnote, directionalNote) else rnote.touch
+        for fnote in keys["Single"] + keys["Hold"] + keys["Flick"] + keys["Direct"]: 
+            if (fnote.hand if isinstance(fnote, directionalNote) else fnote.touch.hand) is None: continue
+            rinfo[2] += single_cost(fnote, rnote.beat, rnote.lane) if isinstance(fnote, directionalNote) else hold_cost(fnote, rnote.beat, rnote.lane)
+        rinfo[2] += (3 - rnote.lane) * .01
+
+    for rinfo in rest_list: 
+        rnote = keys[rinfo[0]][rinfo[1]]
+        rinfo[5] = "Left" if  rinfo[2] + rinfo[3] > 0 else "Right"
+    
+
+
+    flag = True
+    c = 0
+    while flag and c <= 100: 
+
+        for i, rinfo in enumerate(rest_list): 
+            rinfo[3] = 0
+            rnote = keys[rinfo[0]][rinfo[1]] 
+            rnote = rnote if isinstance(rnote, directionalNote) else rnote.touch
+            for j, _rinfo in enumerate(rest_list): 
+                if i == j: continue
+                _rnote = keys[_rinfo[0]][_rinfo[1]]
+                rinfo[3] += single_cost(_rnote, rnote.beat, rnote.lane, _rinfo[5]) if isinstance(_rnote, directionalNote) else hold_cost(_rnote, rnote.beat, rnote.lane, _rinfo[5])
+
+        flag = False
+        for rinfo in rest_list: 
+            rnote = keys[rinfo[0]][rinfo[1]] 
+            rnote = rnote if isinstance(rnote, directionalNote) else rnote.touch
+            rinfo[4] = "Left" if  rinfo[2] + rinfo[3] > 0 else "Right"
+            if rinfo[4] != rinfo[5]: 
+                rinfo[5] = rinfo[4]
+                flag = True
+        
+        c += 1
+    
+    print("在%i轮迭代后，指法分析阶段二完成。" %(c))
+    return [(rinfo[0], rinfo[1], rinfo[-1]) for rinfo in rest_list]

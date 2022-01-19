@@ -3,7 +3,7 @@ import json
 import warnings as w
 from os import mkdir, remove
 from os.path import exists, getsize
-from .div import div_stateI
+from .div import div_stateI, div_stateII
 
 import requests
 
@@ -234,6 +234,10 @@ class Chart:
             self.keys["Direct"][i].set_hand(sI["Direct"][i])
         for i in range(len(self.keys["Hold"])): 
             self.keys["Hold"][i].set_hand(sI["Hold"][i])
+        
+        sII = div_stateII(self.keys)
+        for rinfo in sII: 
+            self.keys[rinfo[0]][rinfo[1]].set_hand(rinfo[2])
 
 
 
