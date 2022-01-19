@@ -182,9 +182,9 @@ class Simo():
     def is_included(self, note):
         return self.is_obj1(note) or self.is_obj2(note)
     
-    def set_hand(self):
-        self.obj1[-1].set_hand("Left")
-        self.obj2[-1].set_hand("Right")
+    # def set_hand(self):
+    #     self.obj1[-1].set_hand("Left")
+    #     self.obj2[-1].set_hand("Right")
     
     def __str__(self) -> str:
         return "----\n同时对象：\t时间：%.2f\n"%(self.beat) + str([str(i) for i in self.obj1]) + "\t轨道：%d\n"%(self.lane[0]) + str([str(i) for i in self.obj2]) + "\t轨道：%d\n-----"%(self.lane[1])

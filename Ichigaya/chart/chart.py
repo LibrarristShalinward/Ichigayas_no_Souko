@@ -3,6 +3,7 @@ import json
 import warnings as w
 from os import mkdir, remove
 from os.path import exists, getsize
+from .div import div_stateI
 
 import requests
 
@@ -202,12 +203,12 @@ class Chart:
             if type(event) == tuple 
             else event.beat)
     
-    def set_hand(self):
-        self.set_hand_simo()
+    # def set_hand(self):
+    #     self.set_hand_simo()
     
-    def set_hand_simo(self):
-        for simo in self.simo:
-            simo.set_hand()
+    # def set_hand_simo(self):
+    #     for simo in self.simo:
+    #         simo.set_hand()
 
     def get_points(self):
         singles = self.keys["Single"] + self.keys["Flick"] + self.keys["Direct"]
@@ -221,6 +222,21 @@ class Chart:
     def get_point_list(self):
         return [point for point in self.get_points()]
     
+
+
+    def div(self): 
+        sI = div_stateI(self.keys, self.simo)
+        for i in range(len(self.keys["Single"])): 
+            self.keys["Single"][i].set_hand(sI["Single"][i])
+        for i in range(len(self.keys["Flick"])): 
+            self.keys["Flick"][i].set_hand(sI["Flick"][i])
+        for i in range(len(self.keys["Direct"])): 
+            self.keys["Direct"][i].set_hand(sI["Direct"][i])
+        for i in range(len(self.keys["Hold"])): 
+            self.keys["Hold"][i].set_hand(sI["Hold"][i])
+
+
+
     def get_len(self):
         if self.len == 0:
             if self.json == None: self.load()
