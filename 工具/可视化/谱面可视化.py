@@ -50,6 +50,7 @@ assert js in [True, False, None]
 origin_chart = Chart(id, args.diff)
 origin_chart.to_path(target_path)
 _ = origin_chart.load()
+origin_chart.div()
 view = ChartView(origin_chart, bps = bps, curve_method = curve_method)
 
 if mode[0] == "s":
