@@ -138,6 +138,22 @@ class Hold:
             all_str += s.__str__() + "\n"
         all_str += self.release.__str__()
         return all_str + "\n====="
+    
+    def f_lane(self, b): 
+        assert b > self.touch.beat and b < self.release.beat
+        if len(self.slides) == 0: 
+            c, n = self.touch, self.release
+        elif b < self.slides[0].beat: 
+            c, n = self.touch, self.slides[0]
+        else:
+            c, n = None, self.slides[-1]
+            for i in range(1, len(self.slides)): 
+                c, n = self.slides[i - 1], self.slides[i]
+                if b < n.beat: 
+                    break
+            if b >= n.beat: 
+                c, n = self.slides[-1], self.release
+        return (b - c.beat) / (n.beat - c.beat) * (n.lane - c.lane) + c.lane
 
 class Simo():
     def __init__(self, obj1 = None , obj2 = None, beat = 0, lane = (0, 0)) -> None:
@@ -166,9 +182,9 @@ class Simo():
     def is_included(self, note):
         return self.is_obj1(note) or self.is_obj2(note)
     
-    def set_hand(self):
-        self.obj1[-1].set_hand("Left")
-        self.obj2[-1].set_hand("Right")
+    # def set_hand(self):
+    #     self.obj1[-1].set_hand("Left")
+    #     self.obj2[-1].set_hand("Right")
     
     def __str__(self) -> str:
-        return "----\n同时对象：\n" + self.obj1.__str__() + "\n" + self.obj2.__str__() + "\n-----"
+        return "----\n同时对象：\t时间：%.2f\n"%(self.beat) + str([str(i) for i in self.obj1]) + "\t轨道：%d\n"%(self.lane[0]) + str([str(i) for i in self.obj2]) + "\t轨道：%d\n-----"%(self.lane[1])

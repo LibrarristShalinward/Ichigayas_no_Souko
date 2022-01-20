@@ -139,7 +139,7 @@ class SingleView(Single, LayerView):
         view = skin()[self.view_idx]
         radius = (std_lane_width - 1) // 2
         if type(self.hand) != type(None):
-            if self.hand:
+            if self.hand == "Right":
                 label = "R"
             else:
                 label = "L"
@@ -169,7 +169,7 @@ class DirectView(Direct, LayerView):
         if self.dir == "Left":
             radius = - radius - 1
         if type(self.hand) != type(None):
-            if self.hand:
+            if self.hand == "Right":
                 label = "R"
             else:
                 label = "L"
