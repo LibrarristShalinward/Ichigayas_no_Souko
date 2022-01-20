@@ -3,7 +3,7 @@ import json
 import warnings as w
 from os import mkdir, remove
 from os.path import exists, getsize
-from .div import div_stateI, div_stateII
+from .div import div, div_result_setter
 
 import requests
 
@@ -224,20 +224,24 @@ class Chart:
     
 
 
-    def div(self): 
-        sI = div_stateI(self.keys, self.simo)
-        for i in range(len(self.keys["Single"])): 
-            self.keys["Single"][i].set_hand(sI["Single"][i])
-        for i in range(len(self.keys["Flick"])): 
-            self.keys["Flick"][i].set_hand(sI["Flick"][i])
-        for i in range(len(self.keys["Direct"])): 
-            self.keys["Direct"][i].set_hand(sI["Direct"][i])
-        for i in range(len(self.keys["Hold"])): 
-            self.keys["Hold"][i].set_hand(sI["Hold"][i])
+    def div(self, states = range(1, 7)): 
+        # sI = div_stateI(self.keys, self.simo)
+        # for i in range(len(self.keys["Single"])): 
+        #     self.keys["Single"][i].set_hand(sI["Single"][i])
+        # for i in range(len(self.keys["Flick"])): 
+        #     self.keys["Flick"][i].set_hand(sI["Flick"][i])
+        # for i in range(len(self.keys["Direct"])): 
+        #     self.keys["Direct"][i].set_hand(sI["Direct"][i])
+        # for i in range(len(self.keys["Hold"])): 
+        #     self.keys["Hold"][i].set_hand(sI["Hold"][i])
         
-        sII = div_stateII(self.keys)
-        for rinfo in sII: 
-            self.keys[rinfo[0]][rinfo[1]].set_hand(rinfo[2])
+        # if step == 1: return; 
+
+        # sII = div_stateII(self.keys)
+        # for rinfo in sII: 
+        #     self.keys[rinfo[0]][rinfo[1]].set_hand(rinfo[2])
+        self.keys = div_result_setter(self.keys, 
+            div(self.keys, self.simo, states))
 
 
 
