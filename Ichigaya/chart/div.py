@@ -52,6 +52,66 @@ def div_stateII(keys):
 
 
 def div_stateIII(keys): 
+    rest_list = []
+    for t, l in keys.items(): 
+        for i, k in enumerate(l): 
+            if isinstance(k, directionalNote) and k.hand is None: 
+                rest_list.append([t, i, k.beat, k.lane, None])
+    rest_list = sorted(rest_list, key = lambda rinfo: rinfo[2])
+
+    rest_group = [[rest_list[0]]]
+    for r in rest_list[1: ]: 
+        if (r[1] - rest_group[-1][-1][1] == 1 or r[0] != "Single" or rest_group[-1][-1][0] != "Single") and r[2] - rest_group[-1][-1][2] < .4: 
+            rest_group[-1].append(r)
+        else: 
+            if len(rest_group[-1]) < 3: 
+                rest_group.pop(-1)
+            rest_group.append([r])
+    
+    rest_cross = []
+    for g in rest_group: 
+        n = 0
+        for i in range(len(g) - 2): 
+            if abs(g[i][2] + g[i + 2][2] - 2 * g[i + 1][2]) > 1e-3 or (g[i + 2][3] - g[i + 1][3]) * (g[i + 1][3] - g[i][3]) > 1e-5: 
+                continue
+            if i < n: continue
+            j = i + 1
+            while j < len(g) - 2: 
+                if abs(g[j][2] + g[j + 2][2] - 2 * g[j + 1][2]) > 1e-3 or  (g[j + 2][3] - g[j + 1][3]) * (g[j + 1][3] - g[j][3]) > 1e-5: 
+                    break
+                j += 1
+            rest_cross.append(g[i : j + 2])
+            n = j + 2
+    
+    rest_cross2 = []
+    for g in rest_cross: 
+        n = 0
+        for i in range(len(g) - 2): 
+            if (g[i + 2][3] - g[i + 1][3]) * (g[i + 1][3] - g[i][3]) >= 0: 
+                continue
+            if (g[i + 2][3] - g[i + 1][3]) * (g[i + 1][3] - g[i][3]) == 0 and g[i + 2][3] - g[i][3] != 0 : 
+                continue
+            if i < n: continue
+            c = 1 if g[i + 1][3] >= g[i][3] else 0
+            j = i + 2
+            while j < len(g) - 1: 
+                if (c + j - i) % 2 == 0 and g[j + 1][3] > g[j][3]: 
+                    break
+                if (c + j - i) % 2 == 1 and g[j + 1][3] < g[j][3]: 
+                    break
+                j += 1
+            rest_cross2.append(g[i : j + 1])
+            n = j + 1
+    
+    for g in rest_cross2: 
+        if g[1][3] > g[0][3]: 
+            keys[g[0][0]][g[0][1]].set_hand("Left")
+        else:
+            keys[g[0][0]][g[0][1]].set_hand("Right")
+            g[0][-1] = "Right"
+        for i in range(1, len(g)): 
+            keys[g[i][0]][g[i][1]].set_hand("Right" if keys[g[i - 1][0]][g[i - 1][1]].hand == "Left" else "Left")
+
     div_result_reporter(keys, "指法分析阶段三进度：")
     return div_result_wrapper(keys)
 
@@ -280,9 +340,9 @@ def div_stateV(keys):
 
 
 
-div_states = [div_stateI, div_stateII, div_stateIII, div_stateIV, div_stateV, div_stateVI]
+div_states = [div_stateI, div_stateII, div_stateIII, div_stateIV, div_stateV]
 
-def div(keys, simos, states = range(1, 7)): 
+def div(keys, simos, states = range(1, 6)): 
     for s in states: 
         if s == 1: 
             keys = div_result_setter(keys, 

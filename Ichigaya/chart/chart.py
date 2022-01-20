@@ -224,7 +224,7 @@ class Chart:
     
 
 
-    def div(self, states = range(1, 7)): 
+    def div(self, states = range(1, 6)): 
         # sI = div_stateI(self.keys, self.simo)
         # for i in range(len(self.keys["Single"])): 
         #     self.keys["Single"][i].set_hand(sI["Single"][i])
