@@ -224,24 +224,9 @@ class Chart:
     
 
 
-    def div(self, states = range(1, 6)): 
-        # sI = div_stateI(self.keys, self.simo)
-        # for i in range(len(self.keys["Single"])): 
-        #     self.keys["Single"][i].set_hand(sI["Single"][i])
-        # for i in range(len(self.keys["Flick"])): 
-        #     self.keys["Flick"][i].set_hand(sI["Flick"][i])
-        # for i in range(len(self.keys["Direct"])): 
-        #     self.keys["Direct"][i].set_hand(sI["Direct"][i])
-        # for i in range(len(self.keys["Hold"])): 
-        #     self.keys["Hold"][i].set_hand(sI["Hold"][i])
-        
-        # if step == 1: return; 
-
-        # sII = div_stateII(self.keys)
-        # for rinfo in sII: 
-        #     self.keys[rinfo[0]][rinfo[1]].set_hand(rinfo[2])
+    def div(self, states = range(1, 6), report = False): 
         self.keys = div_result_setter(self.keys, 
-            div(self.keys, self.simo, states))
+            div(self.keys, self.simo, states, rp = report))
 
 
 
